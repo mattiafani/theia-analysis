@@ -117,6 +117,11 @@ Where X is the dataset number (1-8).
 
 The merged file also contains combined versions: `*_combined` (sum of all 8 datasets).
 
+<p align="center">
+  <img src="docs/images/event_000007.png" width="1800" alt="Event display overview"><br>
+  <em>A ROOT7 TBrowser view of the produced output file</em>
+</p>
+
 ## Performance
 
 ### Optimizations
