@@ -164,8 +164,6 @@ In production mode, only reads:
 - Photon counts (scint, Cherenkov, reemitted)
 - PE counts
 
-This provides 10-100x speedup compared to reading all branches.
-
 ## Troubleshooting
 
 ### Compilation Errors
@@ -229,15 +227,6 @@ root [1] validate(4, true, true, 100)   # Dataset 4, debug, file 100
 ### Adding New Histograms
 
 See INSTALL.md section "Adding New Histograms"
-
-## Contributing
-
-When modifying the code:
-
-1. Test in debug mode first: `./run_validate.sh debug`
-2. Test in production mode: `./run_validate.sh dataset 1`
-3. Check that merge works: `./run_validate.sh`
-4. Update documentation if adding features
 
 ## Contact
 
