@@ -97,7 +97,7 @@ validate/
 ## Event Display Overview
 
 <p align="center">
-  <img src="docs/images/event_000007.pdf" width="600" alt="Event display overview"><br>
+  <img src="docs/images/event_000007.png" width="600" alt="Event display overview"><br>
   <em>Single event display showing detected PEs. 1 bin = 1 PMT</em>
 </p>
 
