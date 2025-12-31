@@ -5,19 +5,8 @@ Validation analysis for comparing GENIE input files with RATPAC output files for
 ## Quick Start
 ```bash
 # 1. Setup environment
-source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
-setup cmake v3_22_0
-setup root v6_28_10b -q e20:p3915:prof
-setup geant4 v4_11_0_p02a -q e20:prof:qt
-setup xerces_c v3_2_3b -q e20
-setup clhep v2_4_5_1a -q e20:prof
-export CLHEP_ROOT=/cvmfs/larsoft.opensciencegrid.org/products/clhep/v2_4_5_1a/Linux64bit+3.10-2.17-e20-prof
-export CPLUS_INCLUDE_PATH=$CLHEP_ROOT/include:$CPLUS_INCLUDE_PATH
-export CPLUS_INCLUDE_PATH=$XERCESCROOT/include:$CPLUS_INCLUDE_PATH
-export THEIA_DATA_PATH=/your/path/to/theia/data         # user-defined
-export THEIA_PRODUCTION_TAG=20251030_prep               # user-defined
-export RATPAC_TWO_PATH=/your/path/to/ratpac-two_v2.2.1  # user-defined
-source $RATPAC_TWO_PATH/ratpac.sh
+
+see INSTALL.md
 
 cd /your/local/folder
 

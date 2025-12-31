@@ -9,6 +9,8 @@ Root_files/*
 OLD*
 validate_C*
 
+git_mattiafani*
+
 *.vscode*
 .clang-format
 *.swp
