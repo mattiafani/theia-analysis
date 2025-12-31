@@ -94,6 +94,13 @@ validate/
 - `Plots/event_NNNNNN.pdf` - Event display PDFs (one per event in the file)
 - `logs/validate_dataset_X_TIMESTAMP.log` - Detailed processing log
 
+## Event Display Overview
+
+<p align="center">
+  <img src="docs/images/event_000007.png" width="600" alt="Event display overview"><br>
+  <em>Single event display showing detected PEs. 1 bin = 1 PMT</em>
+</p>
+
 ### Histograms
 
 Each output file contains:
@@ -118,12 +125,6 @@ The merged file also contains combined versions: `*_combined` (sum of all 8 data
 - **Memory management**: Vectors pre-allocated, proper cleanup
 - **Batch processing**: No GUI windows in production mode
 - **Parallel execution**: Can run multiple datasets simultaneously (see INSTALL.md)
-
-### Typical Runtime
-
-- **Single file (debug)**: ~1-2 minutes
-- **Full dataset (production)**: ~10-30 minutes per dataset
-- **All 8 datasets**: ~2-4 hours (sequential), ~30 minutes (parallel)
 
 ## Features
 
