@@ -75,6 +75,13 @@ void FileManager::FindPathsForHostname(const std::string& hostname, const std::s
 
     // UMN MSI
 
+    else if (hostname == "ahl") {
+        std::cout << " : Matched UMN MSI" << std::endl;
+        // output_file_path = base + "/Ratpac_production/" + tag + "/OUTPUT/" + dataset + "/Theia_25kt_genie_";
+
+        // input_file_path = base + "/Ratpac_production/" + tag + "/INPUT/" + dataset + "/INPUTFILEDIR/genie_root_file_";
+    }
+
     // Local
 }
 
