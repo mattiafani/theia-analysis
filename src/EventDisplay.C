@@ -232,11 +232,14 @@ void EventDisplay::CreateDisplay(
     header->SetTextFont(62);
     header->SetTextSize(0.05);
 
-    // double total_edep = std::accumulate(mckes->begin(), mckes->end(), 0.0);
+    // Calculate total energy deposition
     double total_edep = 0.0;
-    for (double ke : *mckes) {
-        if (std::isfinite(ke) && ke > 0) total_edep += ke;
+    if (mckes && mckes->size() > 0) {
+        for (double ke : *mckes) {
+            if (std::isfinite(ke) && ke > 0) total_edep += ke;
+        }
     }
+    
     TText* edep_line = info->AddText(0.0, 0.90, Form("True total deposited energy = %.2f GeV", 0.001 * total_edep));
     edep_line->SetTextFont(62);
 
@@ -246,45 +249,58 @@ void EventDisplay::CreateDisplay(
     info->AddText(0.0, 0.73, Form("  Cherenkov photons = %e", cherPhotons));
     info->AddText(0.0, 0.68, Form("  Reemitted photons = %e", remPhotons));
 
-    TText* PE_line = info->AddText(0.0, 0.61, Form("True number of collected PEs = %.0f", (double)mcPMTNPE->size()));
+    // Calculate total PEs
+    double total_pes = 0.0;
+    if (mcPMTNPE) {
+        for (int npe : *mcPMTNPE) {
+            total_pes += npe;
+        }
+    }
+    TText* PE_line = info->AddText(0.0, 0.61, Form("True number of collected PEs = %.0f", total_pes));
     PE_line->SetTextFont(62);
 
-    TText* part_line = info->AddText(0.0, 0.54, Form("Pos = (%.2f, %.2f, %.2f) m, Total particles = %d:", 0.001 * (*mcxs)[0], 0.001 * (*mcys)[0], 0.001 * (*mczs)[0], mcparticlecount));
+    // Position and particle count
+    double pos_x = (mcxs && mcxs->size() > 0) ? 0.001 * (*mcxs)[0] : 0.0;
+    double pos_y = (mcys && mcys->size() > 0) ? 0.001 * (*mcys)[0] : 0.0;
+    double pos_z = (mczs && mczs->size() > 0) ? 0.001 * (*mczs)[0] : 0.0;
+    
+    TText* part_line = info->AddText(0.0, 0.54, 
+        Form("Pos = (%.2f, %.2f, %.2f) m, Total particles = %d:", pos_x, pos_y, pos_z, mcparticlecount));
     part_line->SetTextFont(62);
 
-    // Show top particles
+    // Show particles using vector data (not MC object)
     TDatabasePDG* pdgDB = TDatabasePDG::Instance();
-    int npar_in = mc ? mc->GetMCParticleCount() : 0;
-    int max_show = 4;
+    int max_show = std::min(4, mcparticlecount);
 
+    // Build particle list with energies for sorting
     std::vector<std::tuple<double, int, TString, double, double, double>> particles;
 
-    for (int ip = 0; ip < std::min(npar_in, max_show); ++ip) {
-        RAT::DS::MCParticle* p = mc->GetMCParticle(ip);
-        if (!p) continue;
+    if (mcpdgs && mckes && mcus && mcvs && mcws) {
+        for (int ip = 0; ip < mcparticlecount; ++ip) {
+            int pdg = (*mcpdgs)[ip];
+            TParticlePDG* pinfo = pdgDB->GetParticle(pdg);
+            const char* pname = pinfo ? pinfo->GetName() : "unknown";
 
-        int pdg = p->GetPDGCode();
-        TParticlePDG* pinfo = pdgDB->GetParticle(pdg);
-        const char* pname = pinfo ? pinfo->GetName() : "unknown";
+            double ke = (*mckes)[ip];
+            double u = (*mcus)[ip];
+            double v = (*mcvs)[ip];
+            double w = (*mcws)[ip];
 
-        double ke = (*mckes)[ip];
-        double u = (*mcus)[ip];
-        double v = (*mcvs)[ip];
-        double w = (*mcws)[ip];
-
-        particles.emplace_back(ke, pdg, pname, u, v, w);
+            particles.emplace_back(ke, pdg, pname, u, v, w);
+        }
     }
 
-    std::sort(particles.begin(), particles.end(), [](const auto& a, const auto& b) { return std::get<0>(a) > std::get<0>(b); });
+    // Sort by energy (highest first)
+    std::sort(particles.begin(), particles.end(), 
+              [](const auto& a, const auto& b) { return std::get<0>(a) > std::get<0>(b); });
 
+    // Display top particles
     int idx = 0;
-    for (const auto& [ke, pdg, pname, u, v, w] : particles) {
+    for (size_t i = 0; i < std::min((size_t)max_show, particles.size()); ++i) {
+        const auto& [ke, pdg, pname, u, v, w] = particles[i];
+        
         TString pline = Form(" - %s (PDG=%d), Dir = (%.2f, %.2f, %.2f)",
-                             pname.Data(),
-                             pdg,
-                             u,
-                             v,
-                             w);
+                             pname.Data(), pdg, u, v, w);
         info->AddText(0.05, 0.49 - 0.10 * idx, pline);
 
         TString eline = Form("True KE = %.2f MeV", ke);
@@ -292,8 +308,8 @@ void EventDisplay::CreateDisplay(
         ++idx;
     }
 
-    if (npar_in > max_show) {
-        info->AddText(0.0, 0.05, Form(" + %d particles not listed", npar_in - max_show));
+    if (mcparticlecount > max_show) {
+        info->AddText(0.0, 0.05, Form(" + %d particles not listed", mcparticlecount - max_show));
     }
 
     info->Draw();
@@ -306,12 +322,6 @@ void EventDisplay::CreateDisplay(
     gROOT->SetBatch(oldBatch);
 
     // Cleanup
-    // for (auto p : pads) {
-    //     if (p) delete p;
-    // }
-    // delete textPad;
-    // delete info;
-    // delete c;
     c->Close();
 
     std::cout << std::endl;

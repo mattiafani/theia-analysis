@@ -23,7 +23,7 @@ class Config {
     int n_bins_h1d_Ediff;
     double diff_tolerance;
 
-    static const int NSAMPLES = 9;  // 8 + 1
+    static const int NSAMPLES = 5;  // 4 flavors + 1 for combined
 
     void SetDebugMode(bool debug) { mode_debug = debug; }
     void SetEventDisplayMode(bool ed) { mode_event_display = ed; }
@@ -38,7 +38,11 @@ class Config {
 
     TString GetTimestamp() const;
 
-    static TString GetChunkName(int dataset);
+    // Map dataset number (1-4) to flavor name
+    static TString GetFlavorName(int dataset);
+    
+    // For backward compatibility - now returns flavor-based names
+    static TString GetChunkName(int dataset) { return GetFlavorName(dataset); }
 
    private:
     Config();

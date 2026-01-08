@@ -23,6 +23,20 @@ class EventProcessor {
     Statistics& statistics;
     EventDisplay* event_display;
 
+    // Input tree branches (GENIE gRooTracker format)
+    struct InputBranches {
+        Int_t EvtNum;
+        Int_t StdHepN;
+        Int_t StdHepPdg[100];      // Max particles
+        Int_t StdHepStatus[100];
+        Double_t StdHepP4[100][4]; // [particle][px,py,pz,E]
+        Double_t StdHepX4[100][4]; // [particle][x,y,z,t]
+        
+        InputBranches();
+        void Reset();
+    };
+
+    // Output tree branches (RATPAC output format)
     struct OutputBranches {
         Int_t evid, subev, mcid, mcparticlecount, mcpdg, nhits, mcpecount;
         Double_t mcx, mcy, mcz, mcu, mcv, mcw, mct, mcke;
@@ -72,14 +86,19 @@ class EventProcessor {
         ~OutputBranches();
     };
 
+    InputBranches input_branches;
     OutputBranches output_branches;
 
+    void SetupInputBranches(TTree* tree);
     void SetupOutputBranches(TTree* tree);
     void EnableOnlyRequiredBranches(TTree* tree);
 
-    void ProcessEvent(int evt_nr, int dataset, RAT::DS::Root* ds, int entry_index);
+    void ProcessEvent(int evt_nr, int dataset, int entry_index);
 
-    void PrintEventInfo(int evt_nr, RAT::DS::MC* mc, int entry_index) const;
+    void PrintEventInfo(int evt_nr, int entry_index) const;
+    
+    // Helper to calculate kinetic energy from 4-momentum
+    double CalculateKE(double px, double py, double pz, double E) const;
 };
 
 #endif

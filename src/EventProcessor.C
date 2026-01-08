@@ -1,10 +1,27 @@
 #include <TDatabasePDG.h>
+#include <TMath.h>
 
 #include <iostream>
 
 #include "../include/Config.h"
 #include "../include/EventProcessor.h"
-#include "RAT/DS/Root.hh"
+
+EventProcessor::InputBranches::InputBranches() {
+    Reset();
+}
+
+void EventProcessor::InputBranches::Reset() {
+    EvtNum = -1;
+    StdHepN = 0;
+    for (int i = 0; i < 100; i++) {
+        StdHepPdg[i] = 0;
+        StdHepStatus[i] = 0;
+        for (int j = 0; j < 4; j++) {
+            StdHepP4[i][j] = 0.0;
+            StdHepX4[i][j] = 0.0;
+        }
+    }
+}
 
 EventProcessor::OutputBranches::OutputBranches() {
     evid = subev = mcid = mcparticlecount = mcpdg = nhits = mcpecount = -1;
@@ -43,6 +60,25 @@ EventProcessor::EventProcessor(FileManager& fm, HistogramManager& hm, Statistics
 }
 
 EventProcessor::~EventProcessor() {
+}
+
+double EventProcessor::CalculateKE(double px, double py, double pz, double E) const {
+    // KE = E - sqrt(p^2 + m^2) where m is rest mass
+    // But GENIE gives us E (total energy), so KE = E - m = E - sqrt(E^2 - p^2)
+    double p2 = px*px + py*py + pz*pz;
+    double mass = TMath::Sqrt(E*E - p2);
+    double KE = E - mass;
+    return KE * 1000.0; // Convert GeV to MeV
+}
+
+void EventProcessor::SetupInputBranches(TTree* tree) {
+    // Setup GENIE gRooTracker branches
+    tree->SetBranchAddress("EvtNum", &input_branches.EvtNum);
+    tree->SetBranchAddress("StdHepN", &input_branches.StdHepN);
+    tree->SetBranchAddress("StdHepPdg", input_branches.StdHepPdg);
+    tree->SetBranchAddress("StdHepStatus", input_branches.StdHepStatus);
+    tree->SetBranchAddress("StdHepP4", input_branches.StdHepP4);
+    tree->SetBranchAddress("StdHepX4", input_branches.StdHepX4);
 }
 
 void EventProcessor::EnableOnlyRequiredBranches(TTree* tree) {
@@ -273,9 +309,10 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
         return;
     }
 
-    RAT::DS::Root* ds = nullptr;
-    input_tree->SetBranchAddress("ds", &ds);
+    // Setup input branches (GENIE format)
+    SetupInputBranches(input_tree);
 
+    // Setup output branches (RATPAC format)
     EnableOnlyRequiredBranches(output_tree);
     SetupOutputBranches(output_tree);
 
@@ -302,47 +339,67 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
 
         if (output_branches.subev != 0) continue;
 
-        Int_t i_entry_in = evt_nr;
-        input_tree->GetEntry(i_entry_in);
-
-        RAT::DS::MC* mc = ds->GetMC();
-        if (!mc) {
-            std::cout << " ! Input entry " << i_entry_in << " : no MC branch\n";
-            continue;
+        Int_t i_entry_in = file_nr * 100 + i_entry_out + 1;; // +1 for 1-based EvtNum
+        
+        if (i_entry_in >= n_entries_in) {
+            if (debug) {
+                std::cout << " ! WARNING: Input entry " << i_entry_in 
+                          << " exceeds input entries (" << n_entries_in << ")\n";
+            }
+            break;
         }
+        
+        input_tree->GetEntry(i_entry_in);
 
         evt_nr++;
         statistics.n_total_entries++;
 
-        ProcessEvent(evt_nr, dataset, ds, i_entry_in);
+        ProcessEvent(evt_nr, dataset, i_entry_in);
     }
 }
 
-void EventProcessor::ProcessEvent(int evt_nr, int dataset, RAT::DS::Root* ds, int entry_index) {
+void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
     Config& cfg = Config::Instance();
     bool debug = cfg.GetDebugMode();
 
-    RAT::DS::MC* mc = ds->GetMC();
-    if (!mc) return;
-
-    int n_in_particles = mc->GetMCParticleCount();
-
     if (debug) {
-        PrintEventInfo(evt_nr, mc, entry_index);
+        PrintEventInfo(evt_nr, entry_index);
     }
 
     std::vector<double> input_true_KEs;
     std::vector<double> output_true_KEs;
-    input_true_KEs.reserve(n_in_particles);
+    
+    // Count final state particles from GENIE (Status == 1)
+    int n_final_state = 0;
+    for (int k = 0; k < input_branches.StdHepN; ++k) {
+        if (input_branches.StdHepStatus[k] == 1) {
+            n_final_state++;
+        }
+    }
+    
+    input_true_KEs.reserve(n_final_state);
     output_true_KEs.reserve(output_branches.mcparticlecount);
 
-    for (int k = 0; k < n_in_particles; ++k) {
-        RAT::DS::MCParticle* p = mc->GetMCParticle(k);
-        if (!p) continue;
+    // Process input particles (GENIE format)
+    int final_state_counter = 1;
+    for (int k = 0; k < input_branches.StdHepN; ++k) {
+        // Only consider final state particles (Status == 1)
+        if (input_branches.StdHepStatus[k] != 1) continue;
+
+        int pdg = input_branches.StdHepPdg[k];
+        double px = input_branches.StdHepP4[k][0];
+        double py = input_branches.StdHepP4[k][1];
+        double pz = input_branches.StdHepP4[k][2];
+        double E = input_branches.StdHepP4[k][3];
+        double x = input_branches.StdHepX4[k][0];
+        double y = input_branches.StdHepX4[k][1];
+        double z = input_branches.StdHepX4[k][2];
+
+        double KE = CalculateKE(px, py, pz, E);
 
         if (debug) {
             TDatabasePDG* pdgDB = TDatabasePDG::Instance();
-            TParticlePDG* pinfo = pdgDB->GetParticle(p->GetPDGCode());
+            TParticlePDG* pinfo = pdgDB->GetParticle(pdg);
 
             const char* pdg_name = "unknown";
             double pdg_charge = NAN;
@@ -354,35 +411,38 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, RAT::DS::Root* ds, in
                 pdg_mass = pinfo->Mass();
             }
 
-            std::cout << "   Particle " << k
-                      << " | PDG = " << p->GetPDGCode()
+            std::cout << "   Particle " << final_state_counter
+                      << " (GENIE index " << k << ")"
+                      << " | PDG = " << pdg
                       << " (" << pdg_name << ")"
                       << ", Q = " << pdg_charge
                       << ", mass = " << pdg_mass << " GeV"
-                      << ", Pos = (" << p->GetPosition().X() << ", "
-                      << p->GetPosition().Y() << ", "
-                      << p->GetPosition().Z() << ")"
-                      << ", KE = " << p->GetKE() << " MeV"
+                      << ", Pos = (" << x << ", " << y << ", " << z << ")"
+                      << ", KE = " << KE << " MeV"
                       << std::endl;
         }
 
-        input_true_KEs.push_back(p->GetKE());
+        input_true_KEs.push_back(KE);
+        final_state_counter++;
     }
 
+    // Process output particles (RATPAC format)
     if (debug && output_branches.mcpdgs && output_branches.mckes) {
         std::cout << " Output File entry"
                   << " (evid=" << output_branches.evid
                   << ", subev=" << output_branches.subev << ")" << std::endl;
 
-        std::cout << "  Pos = (" << (*output_branches.mcxs)[0] << ", "
-                  << (*output_branches.mcys)[0] << ", "
-                  << (*output_branches.mczs)[0] << ")"
-                  << ", t = " << (*output_branches.mcts)[0]
-                  << "; Total particles = " << output_branches.mcparticlecount
-                  << "; scintPhotons = " << output_branches.scintPhotons
-                  << ", cherPhotons = " << output_branches.cherPhotons
-                  << ", remPhotons = " << output_branches.remPhotons
-                  << std::endl;
+        if (output_branches.mcxs && output_branches.mcxs->size() > 0) {
+            std::cout << "  Pos = (" << (*output_branches.mcxs)[0] << ", "
+                      << (*output_branches.mcys)[0] << ", "
+                      << (*output_branches.mczs)[0] << ")"
+                      << ", t = " << (*output_branches.mcts)[0]
+                      << "; Total particles = " << output_branches.mcparticlecount
+                      << "; scintPhotons = " << output_branches.scintPhotons
+                      << ", cherPhotons = " << output_branches.cherPhotons
+                      << ", remPhotons = " << output_branches.remPhotons
+                      << std::endl;
+        }
     }
 
     if (output_branches.mckes) {
@@ -401,7 +461,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, RAT::DS::Root* ds, in
                     pdg_mass = pinfo->Mass();
                 }
 
-                std::cout << "   Particle " << j
+                std::cout << "   Particle " << j + 1
                           << " | PDG = " << (*output_branches.mcpdgs)[j]
                           << " (AKA " << pdg_name << ")"
                           << ", Q = " << pdg_charge
@@ -421,13 +481,14 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, RAT::DS::Root* ds, in
         }
     }
 
+    // Compare input and output energies
     if (input_true_KEs.size() == output_true_KEs.size()) {
         for (size_t k = 0; k < input_true_KEs.size(); ++k) {
             hist_manager.FillSingleEnergies(dataset, input_true_KEs[k], output_true_KEs[k]);
         }
     } else {
         if (debug) {
-            std::cout << " ! ERROR: number of true KE entries do not match! "
+            std::cout << " ! WARNING: number of true KE entries do not match! "
                       << "Input size: " << input_true_KEs.size()
                       << ", Output size: " << output_true_KEs.size() << std::endl;
         }
@@ -450,22 +511,30 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, RAT::DS::Root* ds, in
     }
 
     hist_manager.FillTotalEnergy(dataset, input_total_true_KE, output_total_true_KE);
-    hist_manager.FillPhotonsVsKE(dataset, output_total_true_KE, output_branches.scintPhotons, output_branches.cherPhotons, output_branches.remPhotons);
+    hist_manager.FillPhotonsVsKE(dataset, output_total_true_KE, output_branches.scintPhotons, 
+                                  output_branches.cherPhotons, output_branches.remPhotons);
     hist_manager.FillPEsVsKE(dataset, output_total_true_KE, this_event_true_nr_PE);
     hist_manager.FillEdiff(dataset, input_total_true_KE - output_total_true_KE);
 
     if (event_display && cfg.GetEventDisplayMode()) {
+        // Note: EventDisplay might need updating too if it uses MC object
+        // For now, passing nullptr for mc since we don't have DS::MC anymore
         event_display->CreateDisplay(
-            evt_nr, mc, output_branches.mcpdgs, output_branches.mcxs, output_branches.mcys, output_branches.mczs, output_branches.mcus, output_branches.mcvs, output_branches.mcws, output_branches.mckes, output_branches.mcparticlecount, output_branches.scintPhotons, output_branches.cherPhotons, output_branches.remPhotons, output_branches.mcPMTID, output_branches.mcPMTNPE);
+            evt_nr, nullptr, output_branches.mcpdgs, output_branches.mcxs, 
+            output_branches.mcys, output_branches.mczs, output_branches.mcus, 
+            output_branches.mcvs, output_branches.mcws, output_branches.mckes, 
+            output_branches.mcparticlecount, output_branches.scintPhotons, 
+            output_branches.cherPhotons, output_branches.remPhotons, 
+            output_branches.mcPMTID, output_branches.mcPMTNPE);
     }
 
     if (debug) std::cout << std::endl;
 }
 
-void EventProcessor::PrintEventInfo(int evt_nr, RAT::DS::MC* mc, int entry_index) const {
+void EventProcessor::PrintEventInfo(int evt_nr, int entry_index) const {
     std::cout << "Event number: " << evt_nr << std::endl;
     std::cout << " Input File entry nr: " << entry_index + 1 << std::endl;
-    std::cout << "  Total particles = " << mc->GetMCParticleCount()
-              << ", NumPE = " << mc->GetNumPE()
+    std::cout << "  Total particles = " << input_branches.StdHepN
+              << " (GENIE format)"
               << std::endl;
 }

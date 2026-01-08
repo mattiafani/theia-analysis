@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# run_validate.sh - Run validation analysis on all datasets
+# run_validate.sh - Run validation analysis on all neutrino flavors
 #
 # Usage:
-#   ./run_validate.sh                    # Run all datasets in production mode + merge
-#   ./run_validate.sh debug [DS] [FILE]  # Run in debug mode (default: dataset 4, file 4)
-#   ./run_validate.sh dataset N          # Run specific dataset N
+#   ./run_validate.sh                    # Run all flavors in production mode + merge
+#   ./run_validate.sh debug [FLAVOR] [FILE]  # Run in debug mode (default: flavor 1, file 0)
+#   ./run_validate.sh flavor N          # Run specific flavor N (1=nue, 2=numu, 3=anue, 4=anumu)
 
 # Colors for output
 RED='\033[0;31m'
@@ -28,30 +28,32 @@ mkdir -p Plots
 mkdir -p logs
 
 MODE="production"
-DATASET_START=1
-DATASET_END=8
+FLAVOR_START=1
+FLAVOR_END=4
 DO_MERGE=false
-DEBUG_DATASET=4
-DEBUG_FILE=4
+DEBUG_FLAVOR=1
+DEBUG_FILE=0
+
+declare -a FLAVOR_NAMES=("" "nue" "numu" "anue" "anumu")
 
 if [ "$1" == "debug" ]; then
     MODE="debug"
     if [ -n "$2" ]; then
-        DEBUG_DATASET=$2
+        DEBUG_FLAVOR=$2
     fi
     if [ -n "$3" ]; then
         DEBUG_FILE=$3
     fi
-    DATASET_START=$DEBUG_DATASET
-    DATASET_END=$DEBUG_DATASET
-    echo -e "${YELLOW}Running in DEBUG mode (dataset $DEBUG_DATASET, file $DEBUG_FILE)${NC}"
-elif [ "$1" == "dataset" ] && [ -n "$2" ]; then
-    DATASET_START=$2
-    DATASET_END=$2
-    echo -e "${YELLOW}Running dataset $2 only${NC}"
+    FLAVOR_START=$DEBUG_FLAVOR
+    FLAVOR_END=$DEBUG_FLAVOR
+    echo -e "${YELLOW}Running in DEBUG mode (flavor $DEBUG_FLAVOR [${FLAVOR_NAMES[$DEBUG_FLAVOR]}], file $DEBUG_FILE)${NC}"
+elif [ "$1" == "flavor" ] && [ -n "$2" ]; then
+    FLAVOR_START=$2
+    FLAVOR_END=$2
+    echo -e "${YELLOW}Running flavor $2 [${FLAVOR_NAMES[$2]}] only${NC}"
 elif [ -z "$1" ]; then
     DO_MERGE=true
-    echo -e "${YELLOW}Running all datasets in production mode (will merge at end)${NC}"
+    echo -e "${YELLOW}Running all flavors in production mode (will merge at end)${NC}"
 fi
 
 if [ ! -f "validate.so" ] || [ "validate.C" -nt "validate.so" ]; then
@@ -70,16 +72,17 @@ START_TIME=$(date +%s)
 
 declare -a OUTPUT_FILES
 
-for k in $(seq $DATASET_START $DATASET_END); do
+for k in $(seq $FLAVOR_START $FLAVOR_END); do
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+    FLAVOR_NAME=${FLAVOR_NAMES[$k]}
     echo ""
-    echo -e "${GREEN}[$TIMESTAMP] Processing dataset $k...${NC}"
+    echo -e "${GREEN}[$TIMESTAMP] Processing flavor $k [$FLAVOR_NAME]...${NC}"
 
-    LOG_FILE="logs/validate_dataset_${k}_$(date +%Y%m%d_%H%M%S).log"
+    LOG_FILE="logs/validate_flavor_${k}_${FLAVOR_NAME}_$(date +%Y%m%d_%H%M%S).log"
 
     if [ "$MODE" == "debug" ]; then
         echo "  Running: root -l -q -e 'validate($k,true,true,$DEBUG_FILE)'"
-        echo "   - Dataset: $k, File: $DEBUG_FILE"
+        echo "   - Flavor: $k [$FLAVOR_NAME], File: $DEBUG_FILE"
         echo "   - Note: Using .rootlogon.C to preload libraries"
         root -l -q -e "validate($k,true,true,$DEBUG_FILE)" 2>&1 | tee "$LOG_FILE"
     else
@@ -89,15 +92,15 @@ for k in $(seq $DATASET_START $DATASET_END); do
     fi
 
     if [ ${PIPESTATUS[0]} -eq 0 ]; then
-        echo -e "${GREEN}  ✓ Dataset $k completed successfully${NC}"
+        echo -e "${GREEN}  ✓ Flavor $k [$FLAVOR_NAME] completed successfully${NC}"
 
-        NEWEST_FILE=$(ls -t validate_0${k}_*.root 2>/dev/null | head -1)
+        NEWEST_FILE=$(ls -t validate_${FLAVOR_NAME}_*.root 2>/dev/null | head -1)
         if [ -n "$NEWEST_FILE" ]; then
             OUTPUT_FILES+=("$NEWEST_FILE")
             echo -e "${BLUE}    Found output: $NEWEST_FILE${NC}"
         fi
     else
-        echo -e "${RED}  ✗ Dataset $k failed! Check $LOG_FILE${NC}"
+        echo -e "${RED}  ✗ Flavor $k [$FLAVOR_NAME] failed! Check $LOG_FILE${NC}"
     fi
 done
 
@@ -130,8 +133,8 @@ if [ "$DO_MERGE" = true ]; then
 
     if [ ${#OUTPUT_FILES[@]} -eq 0 ]; then
         echo -e "${YELLOW}No output files found to merge${NC}"
-        echo -e "${YELLOW}Looking for files matching: validate_0*_*.root${NC}"
-        ls -la validate_0*.root 2>/dev/null || echo -e "${YELLOW}No validate_0*.root files found${NC}"
+        echo -e "${YELLOW}Looking for files matching: validate_*.root${NC}"
+        ls -la validate_*.root 2>/dev/null || echo -e "${YELLOW}No validate_*.root files found${NC}"
     else
         echo -e "${BLUE}Merging ${#OUTPUT_FILES[@]} files into ${MERGED_OUTPUT}...${NC}"
 
@@ -145,7 +148,7 @@ if [ "$DO_MERGE" = true ]; then
             echo -e "${GREEN}  File size: ${SIZE}${NC}"
 
             echo ""
-            echo -e "${BLUE}Creating combined histograms (summing all datasets)...${NC}"
+            echo -e "${BLUE}Creating combined histograms (summing all flavors)...${NC}"
 
             root -b -l -q "merge_datasets.C(\"$MERGED_OUTPUT\")" > "logs/combine_${MERGE_TIMESTAMP}.log" 2>&1
 
@@ -154,25 +157,6 @@ if [ "$DO_MERGE" = true ]; then
             else
                 echo -e "${YELLOW}⚠ Warning: Combined histogram creation had issues. Check logs/combine_${MERGE_TIMESTAMP}.log${NC}"
             fi
-
-            # echo ""
-            # echo -e "${BLUE}Creating per-dataset merged files...${NC}"
-            # for ds in $(seq 1 8); do
-            #     PATTERN="validate_0${ds}_*.root"
-            #     DS_OUTPUT="validate_merged_dataset_0${ds}_${MERGE_TIMESTAMP}.root"
-
-            #     FILE_COUNT=$(ls $PATTERN 2>/dev/null | wc -l)
-
-            #     if [ $FILE_COUNT -gt 0 ]; then
-            #         echo -e "${BLUE}  Merging dataset ${ds} (${FILE_COUNT} files)...${NC}"
-            #         hadd -f "$DS_OUTPUT" $PATTERN > "logs/merge_ds${ds}_${MERGE_TIMESTAMP}.log" 2>&1
-
-            #         if [ $? -eq 0 ]; then
-            #             DS_SIZE=$(du -h "$DS_OUTPUT" | cut -f1)
-            #             echo -e "${GREEN}    ✓ ${DS_OUTPUT} (${DS_SIZE})${NC}"
-            #         fi
-            #     fi
-            # done
 
         else
             echo -e "${RED}✗ Merge failed! Check logs/merge_${MERGE_TIMESTAMP}.log${NC}"

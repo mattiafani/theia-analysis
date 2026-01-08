@@ -49,7 +49,7 @@ std::string FileManager::FindHostname(const std::string& dataset) {
     return hostname_return;
 }
 
-void FileManager::FindPathsForHostname(const std::string& hostname, const std::string& dataset) {
+void FileManager::FindPathsForHostname(const std::string& hostname, const std::string& flavor) {
     const char* data_root = std::getenv("THEIA_DATA_PATH");
     if (!data_root) {
         throw std::runtime_error(
@@ -57,37 +57,31 @@ void FileManager::FindPathsForHostname(const std::string& hostname, const std::s
     }
     std::string base(data_root);
 
-    const char* tag = std::getenv("THEIA_PRODUCTION_TAG");
-    if (!tag) {
-        throw std::runtime_error(
-            "THEIA_PRODUCTION_TAG environment variable is not set");
-    }
-    std::string prod(tag);
-
     if (hostname == "dunegpvm") {
         std::cout << " : Matched dunegpvm" << std::endl;
-        output_file_path =
-            base + "/Ratpac_production/" + tag + "/OUTPUT/" + dataset + "/Theia_25kt_genie_";
-
-        input_file_path =
-            base + "/Ratpac_production/" + tag + "/INPUT/" + dataset + "/INPUTFILEDIR/genie_root_file_";
+        // New structure: data/outputs/{flavor}/theia_{flavor}_{start}_{end}.root
+        output_file_path = base + "/outputs/" + flavor + "/theia_" + flavor + "_";
+        
+        // New structure: data/inputs/{flavor}_100000.rootracker.root
+        input_file_path = base + "/inputs/" + flavor + "_100000.rootracker.root";
     }
-
-    // UMN MSI
-
     else if (hostname == "ahl") {
         std::cout << " : Matched UMN MSI" << std::endl;
-        // output_file_path = base + "/Ratpac_production/" + tag + "/OUTPUT/" + dataset + "/Theia_25kt_genie_";
-
-        // input_file_path = base + "/Ratpac_production/" + tag + "/INPUT/" + dataset + "/INPUTFILEDIR/genie_root_file_";
+        // New structure for UMN MSI
+        output_file_path = base + "/outputs/" + flavor + "/theia_" + flavor + "_";
+        input_file_path = base + "/inputs/" + flavor + "_100000.rootracker.root";
     }
-
-    // Local
+    else if (hostname == "mPro") {
+        std::cout << " : Matched local Mac" << std::endl;
+        // Local structure (will adjust as needed)
+        output_file_path = base + "/outputs/" + flavor + "/theia_" + flavor + "_";
+        input_file_path = base + "/inputs/" + flavor + "_100000.rootracker.root";
+    }
 }
 
-void FileManager::SetupPaths(const std::string& dataset) {
-    std::string hostname = FindHostname(dataset);
-    FindPathsForHostname(hostname, dataset);
+void FileManager::SetupPaths(const std::string& flavor) {
+    std::string hostname = FindHostname(flavor);
+    FindPathsForHostname(hostname, flavor);
 }
 
 bool FileManager::OpenFiles(int file_nr) {
@@ -98,8 +92,17 @@ bool FileManager::OpenFiles(int file_nr) {
     bool flag_input_file_not_readable = false;
     bool debug = Config::Instance().GetDebugMode();
 
-    // Load Ratpac output file
-    output_file_name = output_file_path + std::to_string(file_nr) + ".root";
+    // Calculate output file range from file_nr
+    // Each output file contains 100 events
+    // file_nr ranges from 0 to 999 (for 100k events total)
+    int start_event = file_nr * 100 + 1;
+    int end_event = (file_nr + 1) * 100;
+    
+    // Format: theia_{flavor}_{start:06d}_{end:06d}.root
+    char output_suffix[50];
+    sprintf(output_suffix, "%06d_%06d.root", start_event, end_event);
+    output_file_name = output_file_path + output_suffix;
+    
     if (debug) {
         std::cout << " - debug - Output file name: " << output_file_name << std::endl;
     }
@@ -122,32 +125,32 @@ bool FileManager::OpenFiles(int file_nr) {
         return false;
     }
 
-    // Load Genie input file
-    input_file_name = input_file_path + std::to_string(file_nr) + ".root";
+    // Load Genie input file (single file with 100k events)
+    // Input file is the same for all output files of this flavor
     if (debug) {
-        std::cout << " - debug - Input file name: " << input_file_name << std::endl;
+        std::cout << " - debug - Input file name: " << input_file_path << std::endl;
     }
 
-    if (!FileExists(input_file_name)) {
+    if (!FileExists(input_file_path)) {
         flag_input_file_not_readable = true;
     }
 
     if (!flag_input_file_not_readable) {
-        input_file = TFile::Open(input_file_name.c_str());
+        input_file = TFile::Open(input_file_path.c_str());
     }
 
     if (!input_file || flag_input_file_not_readable || input_file->IsZombie()) {
         if (debug) {
-            std::cout << " ! ERROR opening input file nr: " << file_nr
+            std::cout << " ! ERROR opening input file: " << input_file_path
                       << " - File not readable :-/ " << std::endl;
         }
         return false;
     }
 
     // Get trees
-    input_tree = (TTree*)input_file->Get("T");
+    input_tree = (TTree*)input_file->Get("gRooTracker");  // Updated tree name from ROOT structure
     if (!input_tree) {
-        std::cerr << "ERROR: input tree 'T' not found\n";
+        std::cerr << "ERROR: input tree 'gRooTracker' not found\n";
         return false;
     }
 
