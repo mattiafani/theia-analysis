@@ -98,7 +98,20 @@ void merge_datasets(const char* fname) {
     merge_TH2D("h2d_oScintPhotonsVsKE", "h2d_oScintPhotonsVsKE_combined");
     merge_TH2D("h2d_oRemPhotonsVsKE", "h2d_oRemPhotonsVsKE_combined");
     merge_TH2D("h2d_oPEsVsKE", "h2d_oPEsVsKE_combined");
+    merge_TH2D("h2d_EnergyResolution_vs_E", "h2d_EnergyResolution_vs_E_combined");
 
+    merge_TH1D("h1d_posResX", "h1d_posResX_combined");
+    merge_TH1D("h1d_posResY", "h1d_posResY_combined");
+    merge_TH1D("h1d_posResZ", "h1d_posResZ_combined");
+    merge_TH1D("h1d_posResR", "h1d_posResR_combined");
+    merge_TH1D("h1d_nParticles_input", "h1d_nParticles_input_combined");
+    merge_TH1D("h1d_nParticles_output", "h1d_nParticles_output_combined");
+    merge_TH1D("h1d_nParticles_matched", "h1d_nParticles_matched_combined");
+    merge_TH1D("h1d_PEperMeV_vs_Energy", "h1d_PEperMeV_vs_Energy_combined");
+    merge_TH1D("h1d_PEperMeV_electrons", "h1d_PEperMeV_electrons_combined");
+    merge_TH1D("h1d_PEperMeV_muons", "h1d_PEperMeV_muons_combined");
+    merge_TH1D("h1d_PEperMeV_hadrons", "h1d_PEperMeV_hadrons_combined");
+    merge_TH1D("h1d_EnergyResolution", "h1d_EnergyResolution_combined");
     merge_TH1D("h1d_Ediff", "h1d_Ediff_combined");
 
     f->Close();

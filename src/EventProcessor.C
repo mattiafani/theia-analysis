@@ -68,7 +68,7 @@ double EventProcessor::CalculateKE(double px, double py, double pz, double E) co
     double p2 = px*px + py*py + pz*pz;
     double mass = TMath::Sqrt(E*E - p2);
     double KE = E - mass;
-    return KE * 1000.0; // Convert GeV to MeV
+    return KE * 1000.0; // Convert GeV to MeV (input is in GeV)
 }
 
 void EventProcessor::SetupInputBranches(TTree* tree) {
@@ -339,7 +339,10 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
 
         if (output_branches.subev != 0) continue;
 
-        Int_t i_entry_in = file_nr * 100 + i_entry_out + 1;; // +1 for 1-based EvtNum
+        // Calculate corresponding input entry
+        // Output file contains events starting at file_nr * 100 + 1
+        // So first output event corresponds to input event file_nr * 100
+        Int_t i_entry_in = file_nr * 100 + evt_nr;
         
         if (i_entry_in >= n_entries_in) {
             if (debug) {
@@ -381,7 +384,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
     output_true_KEs.reserve(output_branches.mcparticlecount);
 
     // Process input particles (GENIE format)
-    int final_state_counter = 1;
+    int final_state_counter = 0;
     for (int k = 0; k < input_branches.StdHepN; ++k) {
         // Only consider final state particles (Status == 1)
         if (input_branches.StdHepStatus[k] != 1) continue;
@@ -461,7 +464,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
                     pdg_mass = pinfo->Mass();
                 }
 
-                std::cout << "   Particle " << j + 1
+                std::cout << "   Particle " << j
                           << " | PDG = " << (*output_branches.mcpdgs)[j]
                           << " (AKA " << pdg_name << ")"
                           << ", Q = " << pdg_charge
