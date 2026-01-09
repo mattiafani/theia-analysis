@@ -342,7 +342,7 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
         // Calculate corresponding input entry
         // Output file contains events starting at file_nr * 100 + 1
         // So first output event corresponds to input event file_nr * 100
-        Int_t i_entry_in = file_nr * 100 + evt_nr;
+        Int_t i_entry_in = file_nr * 100 + i_entry_out + 1;; // +1 for 1-based EvtNum
         
         if (i_entry_in >= n_entries_in) {
             if (debug) {
@@ -384,7 +384,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
     output_true_KEs.reserve(output_branches.mcparticlecount);
 
     // Process input particles (GENIE format)
-    int final_state_counter = 0;
+    int final_state_counter = 1;
     for (int k = 0; k < input_branches.StdHepN; ++k) {
         // Only consider final state particles (Status == 1)
         if (input_branches.StdHepStatus[k] != 1) continue;
