@@ -383,7 +383,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
     input_true_KEs.reserve(n_final_state);
     output_true_KEs.reserve(output_branches.mcparticlecount);
 
-    // Process input particles (GENIE format)
+    // Process input particles (Genie)
     int final_state_counter = 1;
     for (int k = 0; k < input_branches.StdHepN; ++k) {
         // Only consider final state particles (Status == 1)
@@ -415,7 +415,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
             }
 
             std::cout << "   Particle " << final_state_counter
-                      << " (GENIE index " << k << ")"
+                    //   << " (GENIE index " << k << ")"
                       << " | PDG = " << pdg
                       << " (" << pdg_name << ")"
                       << ", Q = " << pdg_charge
@@ -429,7 +429,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
         final_state_counter++;
     }
 
-    // Process output particles (RATPAC format)
+    // Process output particles (RATPAC)
     if (debug && output_branches.mcpdgs && output_branches.mckes) {
         std::cout << " Output File entry"
                   << " (evid=" << output_branches.evid
@@ -513,11 +513,30 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
         }
     }
 
+    // if (output_branches.mckes && output_branches.mcpdgs) {
+    //     for (Int_t j = 0; j < output_branches.mcparticlecount; j++) {
+    //         double particle_KE = (*output_branches.mckes)[j];
+    //         int particle_pdg = (*output_branches.mcpdgs)[j];
+            
+    //         // For per-particle light yield, you might want to calculate PE contribution
+    //         // per particle. If you want total event PE vs total KE, do it once:
+    //         if (j == 0 && output_total_true_KE > 0) {
+    //             hist_manager.FillLightYield(dataset, output_total_true_KE, this_event_true_nr_PE, particle_pdg);
+    //         }
+    //     }
+    // }
+
+    double rel_diff = (input_total_true_KE - output_total_true_KE) / input_total_true_KE;
+
     hist_manager.FillTotalEnergy(dataset, input_total_true_KE, output_total_true_KE);
     hist_manager.FillPhotonsVsKE(dataset, output_total_true_KE, output_branches.scintPhotons, 
                                   output_branches.cherPhotons, output_branches.remPhotons);
     hist_manager.FillPEsVsKE(dataset, output_total_true_KE, this_event_true_nr_PE);
     hist_manager.FillEdiff(dataset, input_total_true_KE - output_total_true_KE);
+    hist_manager.FillEnergyResolution(dataset, input_total_true_KE, output_total_true_KE, rel_diff);
+    // hist_manager.FillLightYield(dataset, output_total_true_KE, this_event_true_nr_PE);
+
+    
 
     if (event_display && cfg.GetEventDisplayMode()) {
         // Note: EventDisplay might need updating too if it uses MC object

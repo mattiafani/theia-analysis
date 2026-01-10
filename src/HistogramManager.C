@@ -44,7 +44,7 @@ void HistogramManager::Initialize() {
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_Ediff[l] = new TH1D(
             Form("h1d_Ediff_0%d", l),
-            Form("Energy difference 0%d;(E_{in} - E_{out})/E_{in};Entries", l),
+            Form("Energy difference 0%d;(E_{in} - E_{out});Entries", l),
             cfg.n_bins_h1d_Ediff,
             -2, 2);
     }
@@ -159,7 +159,7 @@ void HistogramManager::Initialize() {
             200, 0, 10);
     }
 
-    // Phase 1: Energy Resolution
+    // Energy Resolution
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h2d_EnergyResolution_vs_E[l] = new TH2D(
             Form("h2d_EnergyResolution_vs_E_0%d", l),
@@ -270,21 +270,21 @@ void HistogramManager::FillParticleMatching(int dataset, int n_input, int n_outp
 
 void HistogramManager::FillLightYield(int dataset, double total_KE, double nPE, int particle_pdg) {
     if (dataset >= 1 && dataset < Config::NSAMPLES && total_KE > 0) {
-        double pe_per_mev = nPE / total_KE;
+        double PE_per_MeV = nPE / total_KE;
         
         if (h2d_PEperMeV_vs_Energy[dataset]) {
-            h2d_PEperMeV_vs_Energy[dataset]->Fill(total_KE, pe_per_mev);
+            h2d_PEperMeV_vs_Energy[dataset]->Fill(total_KE, PE_per_MeV);
         }
         
-        // Classify by particle type
-        int abs_pdg = abs(particle_pdg);
-        if (abs_pdg == 11 && h1d_PEperMeV_electrons[dataset]) {  // electron/positron
-            h1d_PEperMeV_electrons[dataset]->Fill(pe_per_mev);
-        } else if (abs_pdg == 13 && h1d_PEperMeV_muons[dataset]) {  // muon
-            h1d_PEperMeV_muons[dataset]->Fill(pe_per_mev);
-        } else if (h1d_PEperMeV_hadrons[dataset]) {  // hadrons
-            h1d_PEperMeV_hadrons[dataset]->Fill(pe_per_mev);
-        }
+        // // Classify by particle type - To be implemented
+        // int abs_pdg = abs(particle_pdg);
+        // if (abs_pdg == 11 && h1d_PEperMeV_electrons[dataset]) {  // electron/positron
+        //     h1d_PEperMeV_electrons[dataset]->Fill(PE_per_MeV);
+        // } else if (abs_pdg == 13 && h1d_PEperMeV_muons[dataset]) {  // muon
+        //     h1d_PEperMeV_muons[dataset]->Fill(PE_per_MeV);
+        // } else if (h1d_PEperMeV_hadrons[dataset]) {  // hadrons
+        //     h1d_PEperMeV_hadrons[dataset]->Fill(PE_per_MeV);
+        // }
     }
 }
 
@@ -338,12 +338,12 @@ void HistogramManager::Write(int dataset) {
             outFile->WriteObject(h1d_nParticles_matched[dataset], Form("h1d_nParticles_matched_0%d", dataset));
         if (h2d_PEperMeV_vs_Energy[dataset])
             outFile->WriteObject(h2d_PEperMeV_vs_Energy[dataset], Form("h2d_PEperMeV_vs_Energy_0%d", dataset));
-        if (h1d_PEperMeV_electrons[dataset])
-            outFile->WriteObject(h1d_PEperMeV_electrons[dataset], Form("h1d_PEperMeV_electrons_0%d", dataset));
-        if (h1d_PEperMeV_muons[dataset])
-            outFile->WriteObject(h1d_PEperMeV_muons[dataset], Form("h1d_PEperMeV_muons_0%d", dataset));
-        if (h1d_PEperMeV_hadrons[dataset])
-            outFile->WriteObject(h1d_PEperMeV_hadrons[dataset], Form("h1d_PEperMeV_hadrons_0%d", dataset));
+        // if (h1d_PEperMeV_electrons[dataset])
+        //     outFile->WriteObject(h1d_PEperMeV_electrons[dataset], Form("h1d_PEperMeV_electrons_0%d", dataset));
+        // if (h1d_PEperMeV_muons[dataset])
+        //     outFile->WriteObject(h1d_PEperMeV_muons[dataset], Form("h1d_PEperMeV_muons_0%d", dataset));
+        // if (h1d_PEperMeV_hadrons[dataset])
+        //     outFile->WriteObject(h1d_PEperMeV_hadrons[dataset], Form("h1d_PEperMeV_hadrons_0%d", dataset));
         if (h2d_EnergyResolution_vs_E[dataset])
             outFile->WriteObject(h2d_EnergyResolution_vs_E[dataset], Form("h2d_EnergyResolution_vs_E_0%d", dataset));
         if (h1d_EnergyResolution[dataset])
