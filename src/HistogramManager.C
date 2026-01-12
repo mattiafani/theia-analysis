@@ -1,7 +1,24 @@
 #include <iostream>
+#include <TMath.h>
+#include <TLatex.h>
 
 #include "../include/Config.h"
 #include "../include/HistogramManager.h"
+
+const char* HistogramManager::GetDatasetLabel(int dataset) {
+    switch (dataset) {
+        case 1:
+            return "#nu_{e}";
+        case 2:
+            return "#nu_{#mu}";
+        case 3:
+            return "#bar{#nu}_{e}";
+        case 4:
+            return "#bar{#nu}_{#mu}";
+        default:
+            return "";
+    }
+}
 
 HistogramManager::HistogramManager() : outFile(nullptr) {
     for (int i = 0; i < Config::NSAMPLES; i++) {
@@ -16,7 +33,6 @@ HistogramManager::HistogramManager() : outFile(nullptr) {
         h2d_oPMTChargeVsKE[i] = nullptr;
         h2d_oPEsVsKE[i] = nullptr;
         
-        // New histos
         h1d_posResX[i] = nullptr;
         h1d_posResY[i] = nullptr;
         h1d_posResZ[i] = nullptr;
@@ -30,6 +46,43 @@ HistogramManager::HistogramManager() : outFile(nullptr) {
         h1d_PEperMeV_hadrons[i] = nullptr;
         h2d_EnergyResolution_vs_E[i] = nullptr;
         h1d_EnergyResolution[i] = nullptr;
+
+        h1d_posX[i] = nullptr;
+        h1d_posY[i] = nullptr;
+        h1d_posZ[i] = nullptr;
+        h1d_posR[i] = nullptr;
+        h1d_dirU[i] = nullptr;
+        h1d_dirV[i] = nullptr;
+        h1d_dirW[i] = nullptr;
+        h2d_posXY[i] = nullptr;
+        h2d_posXZ[i] = nullptr;
+        h2d_posYZ[i] = nullptr;
+
+        // Particle type distributions
+        h1d_particle_pdg[i] = nullptr;
+        h1d_particle_pdg_input[i] = nullptr;
+        
+        // Multiplicity by particle type
+        h1d_mult_electrons[i] = nullptr;
+        h1d_mult_muons[i] = nullptr;
+        h1d_mult_pions[i] = nullptr;
+        h1d_mult_protons[i] = nullptr;
+        h1d_mult_neutrons[i] = nullptr;
+        h1d_mult_other[i] = nullptr;
+        
+        // Angular distributions
+        h1d_theta[i] = nullptr;
+        h1d_phi[i] = nullptr;
+        h1d_costheta[i] = nullptr;
+        h2d_theta_phi[i] = nullptr;
+        h2d_theta_vs_energy[i] = nullptr;
+        h2d_phi_vs_energy[i] = nullptr;
+        
+        // Angular distributions by particle type
+        h1d_theta_electrons[i] = nullptr;
+        h1d_theta_muons[i] = nullptr;
+        h1d_theta_pions[i] = nullptr;
+        h1d_theta_protons[i] = nullptr;
     }
 }
 
@@ -40,80 +93,80 @@ HistogramManager::~HistogramManager() {
 void HistogramManager::Initialize() {
     Config& cfg = Config::Instance();
 
-    // TH1s
+    // Basic TH1s
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_Ediff[l] = new TH1D(
             Form("h1d_Ediff_0%d", l),
-            Form("Energy difference 0%d;(E_{in} - E_{out});Entries", l),
+            Form("Energy difference 0%d (%s);E_{in} - E_{out} [MeV];Entries", l, GetDatasetLabel(l)),
             cfg.n_bins_h1d_Ediff,
             -2, 2);
     }
 
-    // TH2s
+    // Basic TH2s
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h2d_ioTotalEnergy[l] = new TH2D(
             Form("h2d_ioTotalEnergy_0%d", l),
-            Form("Total KE 0%d;GENIE Total KE [MeV];RATPAC Total KE [MeV]", l),
+            Form("Total KE 0%d (%s);GENIE Total KE [MeV];RATPAC Total KE [MeV]", l, GetDatasetLabel(l)),
             1000, 0, 10000,
             1000, 0, 10000);
 
         h2d_ioSingleEnergies[l] = new TH2D(
             Form("h2d_ioSingleEnergies_0%d", l),
-            Form("Single Particle KE 0%d;GENIE KE [MeV];RATPAC KE [MeV]", l),
+            Form("Single Particle KE 0%d (%s);GENIE KE [MeV];RATPAC KE [MeV]", l, GetDatasetLabel(l)),
             1000, 0, 10000,
             1000, 0, 10000);
 
         h2d_oPhotonsVsKE[l] = new TH2D(
             Form("h2d_oPhotonsVsKE_0%d", l),
-            Form("Total Photons vs KE 0%d;KE [MeV];Photons", l),
+            Form("Total Photons vs KE 0%d (%s);KE [MeV];Photons", l, GetDatasetLabel(l)),
             100, 0, 10000,
-            5000, 0, 5E07);
+            5000, 0, 1E07);
 
         h2d_oCherenkovPhotonsVsKE[l] = new TH2D(
             Form("h2d_oCherenkovPhotonsVsKE_0%d", l),
-            Form("Cherenkov Photons vs KE 0%d;KE [MeV];Cherenkov Photons", l),
+            Form("Cherenkov Photons vs KE 0%d (%s);KE [MeV];Cherenkov Photons", l, GetDatasetLabel(l)),
             100, 0, 10000,
-            5000, 0, 5E07);
+            5000, 0, 1E07);
 
         h2d_oScintPhotonsVsKE[l] = new TH2D(
             Form("h2d_oScintPhotonsVsKE_0%d", l),
-            Form("Scintillation Photons vs KE 0%d;KE [MeV];Scint Photons", l),
+            Form("Scintillation Photons vs KE 0%d (%s);KE [MeV];Scint Photons", l, GetDatasetLabel(l)),
             100, 0, 10000,
-            5000, 0, 5E07);
+            5000, 0, 1E07);
 
         h2d_oRemPhotonsVsKE[l] = new TH2D(
             Form("h2d_oRemPhotonsVsKE_0%d", l),
-            Form("Reemitted Photons vs KE 0%d;KE [MeV];Reemitted Photons", l),
+            Form("Reemitted Photons vs KE 0%d (%s);KE [MeV];Reemitted Photons", l, GetDatasetLabel(l)),
             100, 0, 10000,
             100, 0, 100);
 
         h2d_oPEsVsKE[l] = new TH2D(
             Form("h2d_oPEsVsKE_0%d", l),
-            Form("PEs vs KE 0%d;KE [MeV];PEs", l),
-            100, 0, 100000,
-            1000, 0, 10000);
+            Form("PEs vs KE 0%d (%s);KE [MeV];PEs", l, GetDatasetLabel(l)),
+            100, 0, 1E4,
+            100, 0, 1E6);
     }
 
     // Position Resolution
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_posResX[l] = new TH1D(
             Form("h1d_posResX_0%d", l),
-            Form("X Position Resolution 0%d;#Delta X [mm];Entries", l),
-            200, -1000, 1000);
+            Form("X Position Resolution 0%d (%s);#Delta X [mm];Entries", l, GetDatasetLabel(l)),
+            200, -100, 100);
             
         h1d_posResY[l] = new TH1D(
             Form("h1d_posResY_0%d", l),
-            Form("Y Position Resolution 0%d;#Delta Y [mm];Entries", l),
-            200, -1000, 1000);
+            Form("Y Position Resolution 0%d (%s);#Delta Y [mm];Entries", l, GetDatasetLabel(l)),
+            200, -100, 100);
             
         h1d_posResZ[l] = new TH1D(
             Form("h1d_posResZ_0%d", l),
-            Form("Z Position Resolution 0%d;#Delta Z [mm];Entries", l),
-            200, -1000, 1000);
+            Form("Z Position Resolution 0%d (%s);#Delta Z [mm];Entries", l, GetDatasetLabel(l)),
+            200, -10, 10);
             
         h1d_posResR[l] = new TH1D(
             Form("h1d_posResR_0%d", l),
-            Form("Radial Position Resolution 0%d;#Delta R [mm];Entries", l),
+            Form("Radial Position Resolution 0%d (%s);#Delta R [mm];Entries", l, GetDatasetLabel(l)),
             200, 0, 2000);
     }
 
@@ -121,17 +174,17 @@ void HistogramManager::Initialize() {
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_nParticles_input[l] = new TH1D(
             Form("h1d_nParticles_input_0%d", l),
-            Form("Input Particle Multiplicity 0%d;N_{particles};Entries", l),
+            Form("Input Particle Multiplicity 0%d (%s);N_{particles};Entries", l, GetDatasetLabel(l)),
             50, 0, 50);
             
         h1d_nParticles_output[l] = new TH1D(
             Form("h1d_nParticles_output_0%d", l),
-            Form("Output Particle Multiplicity 0%d;N_{particles};Entries", l),
+            Form("Output Particle Multiplicity 0%d (%s);N_{particles};Entries", l, GetDatasetLabel(l)),
             50, 0, 50);
             
         h1d_nParticles_matched[l] = new TH1D(
             Form("h1d_nParticles_matched_0%d", l),
-            Form("Matched Particles 0%d;N_{matched};Entries", l),
+            Form("Matched Particles 0%d (%s);N_{matched};Entries", l, GetDatasetLabel(l)),
             50, 0, 50);
     }
 
@@ -139,39 +192,205 @@ void HistogramManager::Initialize() {
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h2d_PEperMeV_vs_Energy[l] = new TH2D(
             Form("h2d_PEperMeV_vs_Energy_0%d", l),
-            Form("Light Yield vs Energy 0%d;Total KE [MeV];PE/MeV", l),
-            100, 0, 10000,
-            200, 0, 10);
+            Form("Light Yield vs Energy 0%d (%s);Total KE [MeV];PE/MeV", l, GetDatasetLabel(l)),
+            100, 0, 20000,
+            200, 0, 200);
             
         h1d_PEperMeV_electrons[l] = new TH1D(
             Form("h1d_PEperMeV_electrons_0%d", l),
-            Form("Light Yield for Electrons 0%d;PE/MeV;Entries", l),
-            200, 0, 10);
+            Form("Light Yield for Electrons 0%d (%s);PE/MeV;Entries", l, GetDatasetLabel(l)),
+            200, 0, 200);
             
         h1d_PEperMeV_muons[l] = new TH1D(
             Form("h1d_PEperMeV_muons_0%d", l),
-            Form("Light Yield for Muons 0%d;PE/MeV;Entries", l),
-            200, 0, 10);
+            Form("Light Yield for Muons 0%d (%s);PE/MeV;Entries", l, GetDatasetLabel(l)),
+            200, 0, 200);
             
         h1d_PEperMeV_hadrons[l] = new TH1D(
             Form("h1d_PEperMeV_hadrons_0%d", l),
-            Form("Light Yield for Hadrons 0%d;PE/MeV;Entries", l),
-            200, 0, 10);
+            Form("Light Yield for Hadrons 0%d (%s);PE/MeV;Entries", l, GetDatasetLabel(l)),
+            200, 0, 200);
     }
 
     // Energy Resolution
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h2d_EnergyResolution_vs_E[l] = new TH2D(
             Form("h2d_EnergyResolution_vs_E_0%d", l),
-            Form("Energy Resolution vs Energy 0%d;E_{true} [MeV];(E_{in}-E_{out})/E_{in}", l),
+            Form("Energy Resolution vs Energy 0%d (%s);E_{true} [MeV];(E_{in}-E_{out})/E_{in}", l, GetDatasetLabel(l)),
             100, 0, 10000,
             200, -1, 1);
             
         h1d_EnergyResolution[l] = new TH1D(
             Form("h1d_EnergyResolution_0%d", l),
-            Form("Energy Resolution 0%d;(E_{in}-E_{out})/E_{in};Entries", l),
+            Form("Energy Resolution 0%d (%s);(E_{in}-E_{out})/E_{in};Entries", l, GetDatasetLabel(l)),
             200, -1, 1);
     }
+
+    // Position Distributions
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_posX[l] = new TH1D(
+            Form("h1d_posX_0%d", l),
+            Form("X Position Distribution 0%d (%s);X [mm];Entries", l, GetDatasetLabel(l)),
+            220, -11000, 11000);
+            
+        h1d_posY[l] = new TH1D(
+            Form("h1d_posY_0%d", l),
+            Form("Y Position Distribution 0%d (%s);Y [mm];Entries", l, GetDatasetLabel(l)),
+            700, -35000, 35000);
+            
+        h1d_posZ[l] = new TH1D(
+            Form("h1d_posZ_0%d", l),
+            Form("Z Position Distribution 0%d (%s);Z [mm];Entries", l, GetDatasetLabel(l)),
+            180, -9000, 9000);
+            
+        h1d_posR[l] = new TH1D(
+            Form("h1d_posR_0%d", l),
+            Form("Radial Position Distribution 0%d (%s);R [mm];Entries", l, GetDatasetLabel(l)),
+            600, 0, 6000);
+            
+        h2d_posXY[l] = new TH2D(
+            Form("h2d_posXY_0%d", l),
+            Form("XY Position Distribution 0%d (%s);X [mm];Y [mm]", l, GetDatasetLabel(l)),
+            220, -11000, 11000,
+            700, -35000, 35000);
+            
+        h2d_posXZ[l] = new TH2D(
+            Form("h2d_posXZ_0%d", l),
+            Form("XZ Position Distribution 0%d (%s);X [mm];Z [mm]", l, GetDatasetLabel(l)),
+            220, -11000, 11000,
+            180, -9000, 9000);
+            
+        h2d_posYZ[l] = new TH2D(
+            Form("h2d_posYZ_0%d", l),
+            Form("YZ Position Distribution 0%d (%s);Y [mm];Z [mm]", l, GetDatasetLabel(l)),
+            700, -35000, 35000,
+            180, -9000, 9000);
+    }
+
+    // Direction Distributions
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_dirU[l] = new TH1D(
+            Form("h1d_dirU_0%d", l),
+            Form("U Direction Distribution 0%d (%s);Direction U;Entries", l, GetDatasetLabel(l)),
+            200, -1, 1);
+            
+        h1d_dirV[l] = new TH1D(
+            Form("h1d_dirV_0%d", l),
+            Form("V Direction Distribution 0%d (%s);Direction V;Entries", l, GetDatasetLabel(l)),
+            200, -1, 1);
+            
+        h1d_dirW[l] = new TH1D(
+            Form("h1d_dirW_0%d", l),
+            Form("W Direction Distribution 0%d (%s);Direction W;Entries", l, GetDatasetLabel(l)),
+            200, -1, 1);
+    }
+
+    // Particle Type Distributions
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_particle_pdg[l] = new TH1D(
+            Form("h1d_particle_pdg_0%d", l),
+            Form("Particle PDG Distribution (Output) 0%d (%s);PDG Code;Entries", l, GetDatasetLabel(l)),
+            200, -3000, 3000);
+            
+        h1d_particle_pdg_input[l] = new TH1D(
+            Form("h1d_particle_pdg_input_0%d", l),
+            Form("Particle PDG Distribution (Input) 0%d (%s);PDG Code;Entries", l, GetDatasetLabel(l)),
+            200, -3000, 3000);
+    }
+
+    // Multiplicity by Particle Type
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_mult_electrons[l] = new TH1D(
+            Form("h1d_mult_electrons_0%d", l),
+            Form("Electron/Positron Multiplicity 0%d (%s);N_{e^{#pm}};Entries", l, GetDatasetLabel(l)),
+            20, 0, 20);
+            
+        h1d_mult_muons[l] = new TH1D(
+            Form("h1d_mult_muons_0%d", l),
+            Form("Muon Multiplicity 0%d (%s);N_{#mu^{#pm}};Entries", l, GetDatasetLabel(l)),
+            20, 0, 20);
+            
+        h1d_mult_pions[l] = new TH1D(
+            Form("h1d_mult_pions_0%d", l),
+            Form("Pion Multiplicity 0%d (%s);N_{#pi^{#pm,0}};Entries", l, GetDatasetLabel(l)),
+            20, 0, 20);
+            
+        h1d_mult_protons[l] = new TH1D(
+            Form("h1d_mult_protons_0%d", l),
+            Form("Proton Multiplicity 0%d (%s);N_{p};Entries", l, GetDatasetLabel(l)),
+            20, 0, 20);
+            
+        h1d_mult_neutrons[l] = new TH1D(
+            Form("h1d_mult_neutrons_0%d", l),
+            Form("Neutron Multiplicity 0%d (%s);N_{n};Entries", l, GetDatasetLabel(l)),
+            20, 0, 20);
+            
+        h1d_mult_other[l] = new TH1D(
+            Form("h1d_mult_other_0%d", l),
+            Form("Other Particle Multiplicity 0%d (%s);N_{other};Entries", l, GetDatasetLabel(l)),
+            20, 0, 20);
+    }
+
+    // Angular Distributions
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_theta[l] = new TH1D(
+            Form("h1d_theta_0%d", l),
+            Form("Polar Angle Distribution 0%d (%s);#theta [rad];Entries", l, GetDatasetLabel(l)),
+            180, 0, TMath::Pi());
+            
+        h1d_phi[l] = new TH1D(
+            Form("h1d_phi_0%d", l),
+            Form("Azimuthal Angle Distribution 0%d (%s);#phi [rad];Entries", l, GetDatasetLabel(l)),
+            180, -TMath::Pi(), TMath::Pi());
+            
+        h1d_costheta[l] = new TH1D(
+            Form("h1d_costheta_0%d", l),
+            Form("cos(#theta) Distribution 0%d (%s);cos(#theta);Entries", l, GetDatasetLabel(l)),
+            100, -1, 1);
+            
+        h2d_theta_phi[l] = new TH2D(
+            Form("h2d_theta_phi_0%d", l),
+            Form("Theta vs Phi 0%d (%s);#phi [rad];#theta [rad]", l, GetDatasetLabel(l)),
+            180, -TMath::Pi(), TMath::Pi(),
+            180, 0, TMath::Pi());
+            
+        h2d_theta_vs_energy[l] = new TH2D(
+            Form("h2d_theta_vs_energy_0%d", l),
+            Form("Theta vs Energy 0%d (%s);KE [MeV];#theta [rad]", l, GetDatasetLabel(l)),
+            100, 0, 10000,
+            180, 0, TMath::Pi());
+            
+        h2d_phi_vs_energy[l] = new TH2D(
+            Form("h2d_phi_vs_energy_0%d", l),
+            Form("Phi vs Energy 0%d (%s);KE [MeV];#phi [rad]", l, GetDatasetLabel(l)),
+            100, 0, 10000,
+            180, -TMath::Pi(), TMath::Pi());
+    }
+
+    // Angular Distributions by Particle Type
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_theta_electrons[l] = new TH1D(
+            Form("h1d_theta_electrons_0%d", l),
+            Form("Theta Distribution - Electrons 0%d (%s);#theta [rad];Entries", l, GetDatasetLabel(l)),
+            180, 0, TMath::Pi());
+            
+        h1d_theta_muons[l] = new TH1D(
+            Form("h1d_theta_muons_0%d", l),
+            Form("Theta Distribution - Muons 0%d (%s);#theta [rad];Entries", l, GetDatasetLabel(l)),
+            180, 0, TMath::Pi());
+            
+        h1d_theta_pions[l] = new TH1D(
+            Form("h1d_theta_pions_0%d", l),
+            Form("Theta Distribution - Pions 0%d (%s);#theta [rad];Entries", l, GetDatasetLabel(l)),
+            180, 0, TMath::Pi());
+            
+        h1d_theta_protons[l] = new TH1D(
+            Form("h1d_theta_protons_0%d", l),
+            Form("Theta Distribution - Protons 0%d (%s);#theta [rad];Entries", l, GetDatasetLabel(l)),
+            180, 0, TMath::Pi());
+    }
+
+
 }
 
 void HistogramManager::InitializeOutputFile(const char* filename) {
@@ -250,7 +469,6 @@ void HistogramManager::FillPEsVsKE(int dataset, double KE, double nPE) {
     }
 }
 
-// New fill methods
 void HistogramManager::FillPositionResolution(int dataset, double dx, double dy, double dz, double dr) {
     if (dataset >= 1 && dataset < Config::NSAMPLES) {
         if (h1d_posResX[dataset]) h1d_posResX[dataset]->Fill(dx);
@@ -275,16 +493,16 @@ void HistogramManager::FillLightYield(int dataset, double total_KE, double nPE, 
         if (h2d_PEperMeV_vs_Energy[dataset]) {
             h2d_PEperMeV_vs_Energy[dataset]->Fill(total_KE, PE_per_MeV);
         }
-        
-        // // Classify by particle type - To be implemented
-        // int abs_pdg = abs(particle_pdg);
-        // if (abs_pdg == 11 && h1d_PEperMeV_electrons[dataset]) {  // electron/positron
-        //     h1d_PEperMeV_electrons[dataset]->Fill(PE_per_MeV);
-        // } else if (abs_pdg == 13 && h1d_PEperMeV_muons[dataset]) {  // muon
-        //     h1d_PEperMeV_muons[dataset]->Fill(PE_per_MeV);
-        // } else if (h1d_PEperMeV_hadrons[dataset]) {  // hadrons
-        //     h1d_PEperMeV_hadrons[dataset]->Fill(PE_per_MeV);
-        // }
+
+        // Classify by particle type
+        int abs_pdg = abs(particle_pdg);
+        if (abs_pdg == 11 && h1d_PEperMeV_electrons[dataset]) {  // electron/positron
+            h1d_PEperMeV_electrons[dataset]->Fill(PE_per_MeV);
+        } else if (abs_pdg == 13 && h1d_PEperMeV_muons[dataset]) {  // muon
+            h1d_PEperMeV_muons[dataset]->Fill(PE_per_MeV);
+        } else if (h1d_PEperMeV_hadrons[dataset]) {  // hadrons
+            h1d_PEperMeV_hadrons[dataset]->Fill(PE_per_MeV);
+        }
     }
 }
 
@@ -295,6 +513,76 @@ void HistogramManager::FillEnergyResolution(int dataset, double E_input, double 
         }
         if (h1d_EnergyResolution[dataset]) {
             h1d_EnergyResolution[dataset]->Fill(rel_diff);
+        }
+    }
+}
+
+void HistogramManager::FillPositionDistributions(int dataset, double x, double y, double z) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        double r = TMath::Sqrt(x*x + y*y + z*z);
+        
+        if (h1d_posX[dataset]) h1d_posX[dataset]->Fill(x);
+        if (h1d_posY[dataset]) h1d_posY[dataset]->Fill(y);
+        if (h1d_posZ[dataset]) h1d_posZ[dataset]->Fill(z);
+        if (h1d_posR[dataset]) h1d_posR[dataset]->Fill(r);
+        if (h2d_posXY[dataset]) h2d_posXY[dataset]->Fill(x, y);
+        if (h2d_posXZ[dataset]) h2d_posXZ[dataset]->Fill(x, z);
+        if (h2d_posYZ[dataset]) h2d_posYZ[dataset]->Fill(y, z);
+    }
+}
+
+void HistogramManager::FillDirectionDistributions(int dataset, double u, double v, double w) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        if (h1d_dirU[dataset]) h1d_dirU[dataset]->Fill(u);
+        if (h1d_dirV[dataset]) h1d_dirV[dataset]->Fill(v);
+        if (h1d_dirW[dataset]) h1d_dirW[dataset]->Fill(w);
+    }
+}
+
+void HistogramManager::FillParticlePDG(int dataset, int pdg, bool is_input) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        if (is_input && h1d_particle_pdg_input[dataset]) {
+            h1d_particle_pdg_input[dataset]->Fill(pdg);
+        } else if (!is_input && h1d_particle_pdg[dataset]) {
+            h1d_particle_pdg[dataset]->Fill(pdg);
+        }
+    }
+}
+
+void HistogramManager::FillMultiplicity(int dataset, int n_electrons, int n_muons, 
+                                       int n_pions, int n_protons, int n_neutrons, 
+                                       int n_other) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        if (h1d_mult_electrons[dataset]) h1d_mult_electrons[dataset]->Fill(n_electrons);
+        if (h1d_mult_muons[dataset]) h1d_mult_muons[dataset]->Fill(n_muons);
+        if (h1d_mult_pions[dataset]) h1d_mult_pions[dataset]->Fill(n_pions);
+        if (h1d_mult_protons[dataset]) h1d_mult_protons[dataset]->Fill(n_protons);
+        if (h1d_mult_neutrons[dataset]) h1d_mult_neutrons[dataset]->Fill(n_neutrons);
+        if (h1d_mult_other[dataset]) h1d_mult_other[dataset]->Fill(n_other);
+    }
+}
+
+void HistogramManager::FillAngularDistributions(int dataset, double theta, double phi, 
+                                                double energy, int pdg) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        // Fill general angular distributions
+        if (h1d_theta[dataset]) h1d_theta[dataset]->Fill(theta);
+        if (h1d_phi[dataset]) h1d_phi[dataset]->Fill(phi);
+        if (h1d_costheta[dataset]) h1d_costheta[dataset]->Fill(TMath::Cos(theta));
+        if (h2d_theta_phi[dataset]) h2d_theta_phi[dataset]->Fill(phi, theta);
+        if (h2d_theta_vs_energy[dataset]) h2d_theta_vs_energy[dataset]->Fill(energy, theta);
+        if (h2d_phi_vs_energy[dataset]) h2d_phi_vs_energy[dataset]->Fill(energy, phi);
+        
+        // Fill particle-type specific angular distributions
+        int abs_pdg = abs(pdg);
+        if (abs_pdg == 11 && h1d_theta_electrons[dataset]) {
+            h1d_theta_electrons[dataset]->Fill(theta);
+        } else if (abs_pdg == 13 && h1d_theta_muons[dataset]) {
+            h1d_theta_muons[dataset]->Fill(theta);
+        } else if ((abs_pdg == 211 || pdg == 111) && h1d_theta_pions[dataset]) {
+            h1d_theta_pions[dataset]->Fill(theta);
+        } else if (pdg == 2212 && h1d_theta_protons[dataset]) {
+            h1d_theta_protons[dataset]->Fill(theta);
         }
     }
 }
@@ -321,7 +609,6 @@ void HistogramManager::Write(int dataset) {
         if (h2d_oPEsVsKE[dataset])
             outFile->WriteObject(h2d_oPEsVsKE[dataset], Form("h2d_oPEsVsKE_0%d", dataset));
             
-        // New histograms
         if (h1d_posResX[dataset])
             outFile->WriteObject(h1d_posResX[dataset], Form("h1d_posResX_0%d", dataset));
         if (h1d_posResY[dataset])
@@ -338,16 +625,88 @@ void HistogramManager::Write(int dataset) {
             outFile->WriteObject(h1d_nParticles_matched[dataset], Form("h1d_nParticles_matched_0%d", dataset));
         if (h2d_PEperMeV_vs_Energy[dataset])
             outFile->WriteObject(h2d_PEperMeV_vs_Energy[dataset], Form("h2d_PEperMeV_vs_Energy_0%d", dataset));
-        // if (h1d_PEperMeV_electrons[dataset])
-        //     outFile->WriteObject(h1d_PEperMeV_electrons[dataset], Form("h1d_PEperMeV_electrons_0%d", dataset));
-        // if (h1d_PEperMeV_muons[dataset])
-        //     outFile->WriteObject(h1d_PEperMeV_muons[dataset], Form("h1d_PEperMeV_muons_0%d", dataset));
-        // if (h1d_PEperMeV_hadrons[dataset])
-        //     outFile->WriteObject(h1d_PEperMeV_hadrons[dataset], Form("h1d_PEperMeV_hadrons_0%d", dataset));
+        if (h1d_PEperMeV_electrons[dataset])
+            outFile->WriteObject(h1d_PEperMeV_electrons[dataset], Form("h1d_PEperMeV_electrons_0%d", dataset));
+        if (h1d_PEperMeV_muons[dataset])
+            outFile->WriteObject(h1d_PEperMeV_muons[dataset], Form("h1d_PEperMeV_muons_0%d", dataset));
+        if (h1d_PEperMeV_hadrons[dataset])
+            outFile->WriteObject(h1d_PEperMeV_hadrons[dataset], Form("h1d_PEperMeV_hadrons_0%d", dataset));
         if (h2d_EnergyResolution_vs_E[dataset])
             outFile->WriteObject(h2d_EnergyResolution_vs_E[dataset], Form("h2d_EnergyResolution_vs_E_0%d", dataset));
         if (h1d_EnergyResolution[dataset])
             outFile->WriteObject(h1d_EnergyResolution[dataset], Form("h1d_EnergyResolution_0%d", dataset));
+        if (h1d_EnergyResolution[dataset])
+            outFile->WriteObject(h1d_EnergyResolution[dataset], Form("h1d_EnergyResolution_0%d", dataset));
+            
+        // Position distributions
+        if (h1d_posX[dataset])
+            outFile->WriteObject(h1d_posX[dataset], Form("h1d_posX_0%d", dataset));
+        if (h1d_posY[dataset])
+            outFile->WriteObject(h1d_posY[dataset], Form("h1d_posY_0%d", dataset));
+        if (h1d_posZ[dataset])
+            outFile->WriteObject(h1d_posZ[dataset], Form("h1d_posZ_0%d", dataset));
+        if (h1d_posR[dataset])
+            outFile->WriteObject(h1d_posR[dataset], Form("h1d_posR_0%d", dataset));
+        if (h2d_posXY[dataset])
+            outFile->WriteObject(h2d_posXY[dataset], Form("h2d_posXY_0%d", dataset));
+        if (h2d_posXZ[dataset])
+            outFile->WriteObject(h2d_posXZ[dataset], Form("h2d_posXZ_0%d", dataset));
+        if (h2d_posYZ[dataset])
+            outFile->WriteObject(h2d_posYZ[dataset], Form("h2d_posYZ_0%d", dataset));
+            
+        // Direction distributions
+        if (h1d_dirU[dataset])
+            outFile->WriteObject(h1d_dirU[dataset], Form("h1d_dirU_0%d", dataset));
+        if (h1d_dirV[dataset])
+            outFile->WriteObject(h1d_dirV[dataset], Form("h1d_dirV_0%d", dataset));
+        if (h1d_dirW[dataset])
+            outFile->WriteObject(h1d_dirW[dataset], Form("h1d_dirW_0%d", dataset));
+
+        // Particle type distributions
+        if (h1d_particle_pdg[dataset])
+            outFile->WriteObject(h1d_particle_pdg[dataset], Form("h1d_particle_pdg_0%d", dataset));
+        if (h1d_particle_pdg_input[dataset])
+            outFile->WriteObject(h1d_particle_pdg_input[dataset], Form("h1d_particle_pdg_input_0%d", dataset));
+            
+        // Multiplicity by particle type
+        if (h1d_mult_electrons[dataset])
+            outFile->WriteObject(h1d_mult_electrons[dataset], Form("h1d_mult_electrons_0%d", dataset));
+        if (h1d_mult_muons[dataset])
+            outFile->WriteObject(h1d_mult_muons[dataset], Form("h1d_mult_muons_0%d", dataset));
+        if (h1d_mult_pions[dataset])
+            outFile->WriteObject(h1d_mult_pions[dataset], Form("h1d_mult_pions_0%d", dataset));
+        if (h1d_mult_protons[dataset])
+            outFile->WriteObject(h1d_mult_protons[dataset], Form("h1d_mult_protons_0%d", dataset));
+        if (h1d_mult_neutrons[dataset])
+            outFile->WriteObject(h1d_mult_neutrons[dataset], Form("h1d_mult_neutrons_0%d", dataset));
+        if (h1d_mult_other[dataset])
+            outFile->WriteObject(h1d_mult_other[dataset], Form("h1d_mult_other_0%d", dataset));
+
+        // Angular distributions
+        if (h1d_theta[dataset])
+            outFile->WriteObject(h1d_theta[dataset], Form("h1d_theta_0%d", dataset));
+        if (h1d_phi[dataset])
+            outFile->WriteObject(h1d_phi[dataset], Form("h1d_phi_0%d", dataset));
+        if (h1d_costheta[dataset])
+            outFile->WriteObject(h1d_costheta[dataset], Form("h1d_costheta_0%d", dataset));
+        if (h2d_theta_phi[dataset])
+            outFile->WriteObject(h2d_theta_phi[dataset], Form("h2d_theta_phi_0%d", dataset));
+        if (h2d_theta_vs_energy[dataset])
+            outFile->WriteObject(h2d_theta_vs_energy[dataset], Form("h2d_theta_vs_energy_0%d", dataset));
+        if (h2d_phi_vs_energy[dataset])
+            outFile->WriteObject(h2d_phi_vs_energy[dataset], Form("h2d_phi_vs_energy_0%d", dataset));
+        
+        // Angular distributions by particle type
+        if (h1d_theta_electrons[dataset])
+            outFile->WriteObject(h1d_theta_electrons[dataset], Form("h1d_theta_electrons_0%d", dataset));
+        if (h1d_theta_muons[dataset])
+            outFile->WriteObject(h1d_theta_muons[dataset], Form("h1d_theta_muons_0%d", dataset));
+        if (h1d_theta_pions[dataset])
+            outFile->WriteObject(h1d_theta_pions[dataset], Form("h1d_theta_pions_0%d", dataset));
+        if (h1d_theta_protons[dataset])
+            outFile->WriteObject(h1d_theta_protons[dataset], Form("h1d_theta_protons_0%d", dataset));
+    
+            
     }
 }
 

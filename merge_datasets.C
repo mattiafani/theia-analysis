@@ -18,7 +18,7 @@ void merge_datasets(const char* fname) {
     auto trim_title = [&](TH1* h) {
         TString title = h->GetTitle();
         if (title.Length() > 3) {
-            title.Resize(title.Length() - 3);
+            title.Resize(title.Length() - 12);
         }
         h->SetTitle(title);
     };
@@ -85,12 +85,12 @@ void merge_datasets(const char* fname) {
 
         f->cd();
         hmerged->Write(newname, TObject::kOverwrite);
-        std::cout << "  ✓ Merged histogram: " << newname
-                  << " (entries: " << hmerged->GetEntries() << ")" << std::endl;
+        std::cout << "  ✓ Merged histogram: " << newname << " (entries: " << hmerged->GetEntries() << ")" << std::endl;
 
         delete hmerged;
     };
 
+    // TH2D histos
     merge_TH2D("h2d_ioTotalEnergy", "h2d_ioTotalEnergy_combined");
     merge_TH2D("h2d_ioSingleEnergies", "h2d_ioSingleEnergies_combined");
     merge_TH2D("h2d_oPhotonsVsKE", "h2d_oPhotonsVsKE_combined");
@@ -98,8 +98,24 @@ void merge_datasets(const char* fname) {
     merge_TH2D("h2d_oScintPhotonsVsKE", "h2d_oScintPhotonsVsKE_combined");
     merge_TH2D("h2d_oRemPhotonsVsKE", "h2d_oRemPhotonsVsKE_combined");
     merge_TH2D("h2d_oPEsVsKE", "h2d_oPEsVsKE_combined");
+    merge_TH2D("h2d_posXY", "h2d_posXY_combined");
+    merge_TH2D("h2d_posXZ", "h2d_posXZ_combined");
+    merge_TH2D("h2d_posYZ", "h2d_posYZ_combined");
+    merge_TH2D("h2d_PEperMeV_vs_Energy", "h2d_PEperMeV_vs_Energy_combined");  
     merge_TH2D("h2d_EnergyResolution_vs_E", "h2d_EnergyResolution_vs_E_combined");
+    merge_TH2D("h2d_theta_phi", "h2d_theta_phi_combined");  
+    merge_TH2D("h2d_theta_vs_energy", "h2d_theta_vs_energy_combined");  
+    merge_TH2D("h2d_phi_vs_energy", "h2d_phi_vs_energy_combined");  
 
+    // TH1D histos
+    merge_TH1D("h1d_Ediff", "h1d_Ediff_combined");
+    merge_TH1D("h1d_posX", "h1d_posX_combined");
+    merge_TH1D("h1d_posY", "h1d_posY_combined");
+    merge_TH1D("h1d_posZ", "h1d_posZ_combined");
+    merge_TH1D("h1d_posR", "h1d_posR_combined");
+    merge_TH1D("h1d_dirU", "h1d_dirU_combined");
+    merge_TH1D("h1d_dirV", "h1d_dirV_combined");
+    merge_TH1D("h1d_dirW", "h1d_dirW_combined");
     merge_TH1D("h1d_posResX", "h1d_posResX_combined");
     merge_TH1D("h1d_posResY", "h1d_posResY_combined");
     merge_TH1D("h1d_posResZ", "h1d_posResZ_combined");
@@ -107,12 +123,25 @@ void merge_datasets(const char* fname) {
     merge_TH1D("h1d_nParticles_input", "h1d_nParticles_input_combined");
     merge_TH1D("h1d_nParticles_output", "h1d_nParticles_output_combined");
     merge_TH1D("h1d_nParticles_matched", "h1d_nParticles_matched_combined");
-    merge_TH1D("h1d_PEperMeV_vs_Energy", "h1d_PEperMeV_vs_Energy_combined");
     merge_TH1D("h1d_PEperMeV_electrons", "h1d_PEperMeV_electrons_combined");
     merge_TH1D("h1d_PEperMeV_muons", "h1d_PEperMeV_muons_combined");
     merge_TH1D("h1d_PEperMeV_hadrons", "h1d_PEperMeV_hadrons_combined");
     merge_TH1D("h1d_EnergyResolution", "h1d_EnergyResolution_combined");
-    merge_TH1D("h1d_Ediff", "h1d_Ediff_combined");
+    merge_TH1D("h1d_particle_pdg", "h1d_particle_pdg_combined");
+    merge_TH1D("h1d_particle_pdg_input", "h1d_particle_pdg_input_combined");
+    merge_TH1D("h1d_mult_electrons", "h1d_mult_electrons_combined");
+    merge_TH1D("h1d_mult_muons", "h1d_mult_muons_combined");
+    merge_TH1D("h1d_mult_pions", "h1d_mult_pions_combined");
+    merge_TH1D("h1d_mult_protons", "h1d_mult_protons_combined");
+    merge_TH1D("h1d_mult_neutrons", "h1d_mult_neutrons_combined");
+    merge_TH1D("h1d_mult_other", "h1d_mult_other_combined");
+    merge_TH1D("h1d_theta", "h1d_theta_combined");
+    merge_TH1D("h1d_phi", "h1d_phi_combined");
+    merge_TH1D("h1d_costheta", "h1d_costheta_combined");
+    merge_TH1D("h1d_theta_electrons", "h1d_theta_electrons_combined");
+    merge_TH1D("h1d_theta_muons", "h1d_theta_muons_combined");
+    merge_TH1D("h1d_theta_pions", "h1d_theta_pions_combined");
+    merge_TH1D("h1d_theta_protons", "h1d_theta_protons_combined");
 
     f->Close();
     delete f;

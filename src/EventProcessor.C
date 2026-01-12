@@ -98,16 +98,17 @@ void EventProcessor::EnableOnlyRequiredBranches(TTree* tree) {
         tree->SetBranchStatus("remPhotons", 1);
         tree->SetBranchStatus("mcPMTNPE", 1);
 
+        tree->SetBranchStatus("mcpdgs", 1);
+        tree->SetBranchStatus("mcxs", 1);
+        tree->SetBranchStatus("mcys", 1);
+        tree->SetBranchStatus("mczs", 1);
+        tree->SetBranchStatus("mcus", 1);
+        tree->SetBranchStatus("mcvs", 1);
+        tree->SetBranchStatus("mcws", 1);
+        tree->SetBranchStatus("mcts", 1);
+
         // For event display in debug mode, we need additional branches
         if (cfg.GetEventDisplayMode()) {
-            tree->SetBranchStatus("mcpdgs", 1);
-            tree->SetBranchStatus("mcxs", 1);
-            tree->SetBranchStatus("mcys", 1);
-            tree->SetBranchStatus("mczs", 1);
-            tree->SetBranchStatus("mcus", 1);
-            tree->SetBranchStatus("mcvs", 1);
-            tree->SetBranchStatus("mcws", 1);
-            tree->SetBranchStatus("mcts", 1);
             tree->SetBranchStatus("mcPMTID", 1);
         }
     }
@@ -327,7 +328,7 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
     Int_t n_entries_in = input_tree->GetEntries();
 
     if (debug) {
-        std::cout << "Entries:\n";
+        std::cout << " Processing file_nr: " << file_nr << ", Entries:\n";
         std::cout << " Input entries: " << n_entries_in << std::endl;
         std::cout << " Output entries: " << n_entries_out << std::endl;
     }
@@ -342,7 +343,15 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
         // Calculate corresponding input entry
         // Output file contains events starting at file_nr * 100 + 1
         // So first output event corresponds to input event file_nr * 100
-        Int_t i_entry_in = file_nr * 100 + i_entry_out + 1;; // +1 for 1-based EvtNum
+        Int_t i_entry_in = file_nr * 100 + i_entry_out + 1; // +1 for 1-based EvtNum
+
+        // Extra debug
+        if (debug && evt_nr < 3) {  // Debug first few events
+            std::cout << "\nMapping: i_entry_out=" << i_entry_out 
+                      << " (evid=" << output_branches.evid << ")"
+                      << " -> i_entry_in=" << i_entry_in << std::endl;
+        }
+        ////
         
         if (i_entry_in >= n_entries_in) {
             if (debug) {
@@ -415,7 +424,6 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
             }
 
             std::cout << "   Particle " << final_state_counter
-                    //   << " (GENIE index " << k << ")"
                       << " | PDG = " << pdg
                       << " (" << pdg_name << ")"
                       << ", Q = " << pdg_charge
@@ -466,7 +474,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
 
                 std::cout << "   Particle " << j
                           << " | PDG = " << (*output_branches.mcpdgs)[j]
-                          << " (AKA " << pdg_name << ")"
+                          << " (" << pdg_name <<")"
                           << ", Q = " << pdg_charge
                           << ", mass = " << pdg_mass << " GeV"
                           << ", Pos = (" << (*output_branches.mcxs)[j] << ", "
@@ -507,24 +515,33 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
         for (auto ke : output_true_KEs) output_total_true_KE += ke;
     }
 
-    if (output_branches.mcPMTNPE && output_branches.hitPMTID) {
+    // Total PE for this event
+    if (output_branches.mcPMTNPE) {
         for (size_t ihit = 0; ihit < output_branches.mcPMTNPE->size(); ++ihit) {
             this_event_true_nr_PE += (*output_branches.mcPMTNPE)[ihit];
         }
     }
 
-    // if (output_branches.mckes && output_branches.mcpdgs) {
-    //     for (Int_t j = 0; j < output_branches.mcparticlecount; j++) {
-    //         double particle_KE = (*output_branches.mckes)[j];
-    //         int particle_pdg = (*output_branches.mcpdgs)[j];
-            
-    //         // For per-particle light yield, you might want to calculate PE contribution
-    //         // per particle. If you want total event PE vs total KE, do it once:
-    //         if (j == 0 && output_total_true_KE > 0) {
-    //             hist_manager.FillLightYield(dataset, output_total_true_KE, this_event_true_nr_PE, particle_pdg);
-    //         }
-    //     }
-    // }
+    // Light Yield
+    if (output_total_true_KE > 0 && output_branches.mcpdgs && 
+        output_branches.mcpdgs->size() > 0) {
+        
+        // Find the highest energy particle to use as primary
+        int primary_particle_idx = 0;
+        double max_KE = 0;
+        
+        if (output_branches.mckes) {
+            for (Int_t j = 0; j < output_branches.mcparticlecount; j++) {
+                if ((*output_branches.mckes)[j] > max_KE) {
+                    max_KE = (*output_branches.mckes)[j];
+                    primary_particle_idx = j;
+                }
+            }
+        }
+        
+        int primary_pdg = (*output_branches.mcpdgs)[primary_particle_idx];
+        hist_manager.FillLightYield(dataset, output_total_true_KE, this_event_true_nr_PE, primary_pdg);
+    }
 
     double rel_diff = (input_total_true_KE - output_total_true_KE) / input_total_true_KE;
 
@@ -534,10 +551,134 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
     hist_manager.FillPEsVsKE(dataset, output_total_true_KE, this_event_true_nr_PE);
     hist_manager.FillEdiff(dataset, input_total_true_KE - output_total_true_KE);
     hist_manager.FillEnergyResolution(dataset, input_total_true_KE, output_total_true_KE, rel_diff);
-    // hist_manager.FillLightYield(dataset, output_total_true_KE, this_event_true_nr_PE);
 
+    hist_manager.FillParticleMatching(dataset, 
+                                     input_true_KEs.size(), 
+                                     output_true_KEs.size(), 
+                                     std::min(input_true_KEs.size(), output_true_KEs.size()));
+
+    // Position differences between input and output
+    if (input_branches.StdHepN > 0 && output_branches.mcxs && output_branches.mcxs->size() > 0) {
+        
+        // Get first final state particle position from input
+        double input_x = 0, input_y = 0, input_z = 0;
+        bool found_final_state = false;
+        
+        for (int k = 0; k < input_branches.StdHepN; ++k) {
+            if (input_branches.StdHepStatus[k] == 1) {
+                input_x = input_branches.StdHepX4[k][0];
+                input_y = input_branches.StdHepX4[k][1];
+                input_z = input_branches.StdHepX4[k][2];
+                found_final_state = true;
+                break;
+            }
+        }
+        
+        if (found_final_state) {
+            double output_x = (*output_branches.mcxs)[0];
+            double output_y = (*output_branches.mcys)[0];
+            double output_z = (*output_branches.mczs)[0];  
+            
+            // Too many events show (0,0,0) input positions while the output position appears reasonable. Quick workaround:
+            // if (input_x == 0 && input_y == 0 && input_z == 0) {
+            //     input_x = output_x;
+            //     input_y = output_y;
+            //     input_z = output_z;
+            // }
     
+            // Calculate differences (units in mm)
+            double dx = (output_x - input_x);
+            double dy = (output_y - input_y);
+            double dz = (output_z - input_z);
+            double dr = TMath::Sqrt(dx*dx + dy*dy + dz*dz);
 
+            hist_manager.FillPositionResolution(dataset, dx, dy, dz, dr);
+        }
+    }
+
+    // Multiplicity of particle types in input
+
+    int n_electrons_in = 0, n_muons_in = 0, n_pions_in = 0;
+    int n_protons_in = 0, n_neutrons_in = 0, n_other_in = 0;
+    
+    for (int k = 0; k < input_branches.StdHepN; ++k) {
+        if (input_branches.StdHepStatus[k] != 1) continue;
+        
+        int pdg = input_branches.StdHepPdg[k];
+        hist_manager.FillParticlePDG(dataset, pdg, true);  // true = input
+        
+        int abs_pdg = abs(pdg);
+        if (abs_pdg == 11) n_electrons_in++;
+        else if (abs_pdg == 13) n_muons_in++;
+        else if (abs_pdg == 211 || pdg == 111) n_pions_in++;
+        else if (pdg == 2212) n_protons_in++;
+        else if (pdg == 2112) n_neutrons_in++;
+        else n_other_in++;
+    }
+
+    // Multiplicity of particle types in output
+    // To be implemented
+
+    // Angular distributions in output
+
+    int n_electrons_out = 0, n_muons_out = 0, n_pions_out = 0;
+    int n_protons_out = 0, n_neutrons_out = 0, n_other_out = 0;
+    
+    if (output_branches.mckes && output_branches.mcpdgs && 
+        output_branches.mcus && output_branches.mcvs && output_branches.mcws) {
+        
+        for (Int_t j = 0; j < output_branches.mcparticlecount; j++) {
+            int pdg = (*output_branches.mcpdgs)[j];
+            double u = (*output_branches.mcus)[j];
+            double v = (*output_branches.mcvs)[j];
+            double w = (*output_branches.mcws)[j];
+            double ke = (*output_branches.mckes)[j];
+            
+            // Fill PDG distribution
+            hist_manager.FillParticlePDG(dataset, pdg, false);  // false = output
+            
+            // Count by particle type
+            int abs_pdg = abs(pdg);
+            if (abs_pdg == 11) n_electrons_out++;
+            else if (abs_pdg == 13) n_muons_out++;
+            else if (abs_pdg == 211 || pdg == 111) n_pions_out++;
+            else if (pdg == 2212) n_protons_out++;
+            else if (pdg == 2112) n_neutrons_out++;
+            else n_other_out++;
+            
+            // Calculate angular variables
+            // Direction vector is (u, v, w)
+            double theta = TMath::ACos(w);  // Polar angle from z-axis
+            double phi = TMath::ATan2(v, u);  // Azimuthal angle in xy-plane
+            
+            // Fill angular distributions
+            hist_manager.FillAngularDistributions(dataset, theta, phi, ke, pdg);
+        }
+    }
+
+    // Fill multiplicity histograms
+    hist_manager.FillMultiplicity(dataset, n_electrons_out, n_muons_out, n_pions_out,
+                                 n_protons_out, n_neutrons_out, n_other_out);
+
+    //
+
+    if (output_branches.mcxs && output_branches.mcys && output_branches.mczs &&
+        output_branches.mcus && output_branches.mcvs && output_branches.mcws) {
+        
+        for (Int_t j = 0; j < output_branches.mcparticlecount; j++) {
+            double x = (*output_branches.mcxs)[j];
+            double y = (*output_branches.mcys)[j];
+            double z = (*output_branches.mczs)[j];
+            double u = (*output_branches.mcus)[j];
+            double v = (*output_branches.mcvs)[j];
+            double w = (*output_branches.mcws)[j];
+            
+            hist_manager.FillPositionDistributions(dataset, x, y, z);
+            hist_manager.FillDirectionDistributions(dataset, u, v, w);
+        }
+    }
+
+    // Event Display
     if (event_display && cfg.GetEventDisplayMode()) {
         // Note: EventDisplay might need updating too if it uses MC object
         // For now, passing nullptr for mc since we don't have DS::MC anymore
@@ -556,7 +697,5 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
 void EventProcessor::PrintEventInfo(int evt_nr, int entry_index) const {
     std::cout << "Event number: " << evt_nr << std::endl;
     std::cout << " Input File entry nr: " << entry_index + 1 << std::endl;
-    std::cout << "  Total particles = " << input_branches.StdHepN
-              << " (GENIE format)"
-              << std::endl;
+    std::cout << "  Total particles = " << input_branches.StdHepN << std::endl;
 }
