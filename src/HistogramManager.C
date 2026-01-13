@@ -47,6 +47,7 @@ HistogramManager::HistogramManager() : outFile(nullptr) {
         h2d_EnergyResolution_vs_E[i] = nullptr;
         h1d_EnergyResolution[i] = nullptr;
 
+        // Position (input and output)
         h1d_posX[i] = nullptr;
         h1d_posY[i] = nullptr;
         h1d_posZ[i] = nullptr;
@@ -57,6 +58,16 @@ HistogramManager::HistogramManager() : outFile(nullptr) {
         h2d_posXY[i] = nullptr;
         h2d_posXZ[i] = nullptr;
         h2d_posYZ[i] = nullptr;
+        h1d_posX_input[i] = nullptr;
+        h1d_posY_input[i] = nullptr;
+        h1d_posZ_input[i] = nullptr;
+        h1d_posR_input[i] = nullptr;
+        h1d_dirU_input[i] = nullptr;
+        h1d_dirV_input[i] = nullptr;
+        h1d_dirW_input[i] = nullptr;
+        h2d_posXY_input[i] = nullptr;
+        h2d_posXZ_input[i] = nullptr;
+        h2d_posYZ_input[i] = nullptr;
 
         // Particle type distributions
         h1d_particle_pdg[i] = nullptr;
@@ -226,7 +237,7 @@ void HistogramManager::Initialize() {
             200, -1, 1);
     }
 
-    // Position Distributions
+    // Position Distributions (output)
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_posX[l] = new TH1D(
             Form("h1d_posX_0%d", l),
@@ -267,7 +278,48 @@ void HistogramManager::Initialize() {
             180, -9000, 9000);
     }
 
-    // Direction Distributions
+    // Position Distributions (input)
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_posX_input[l] = new TH1D(
+            Form("h1d_posX_input_0%d", l),
+            Form("X Position Distribution (Input) 0%d (%s);X [mm];Entries", l, GetDatasetLabel(l)),
+            220, -11000, 11000);
+            
+        h1d_posY_input[l] = new TH1D(
+            Form("h1d_posY_input_0%d", l),
+            Form("Y Position Distribution (Input) 0%d (%s);Y [mm];Entries", l, GetDatasetLabel(l)),
+            700, -35000, 35000);
+            
+        h1d_posZ_input[l] = new TH1D(
+            Form("h1d_posZ_input_0%d", l),
+            Form("Z Position Distribution (Input) 0%d (%s);Z [mm];Entries", l, GetDatasetLabel(l)),
+            180, -9000, 9000);
+            
+        h1d_posR_input[l] = new TH1D(
+            Form("h1d_posR_input_0%d", l),
+            Form("Radial Position Distribution (Input) 0%d (%s);R [mm];Entries", l, GetDatasetLabel(l)),
+            600, 0, 6000);
+            
+        h2d_posXY_input[l] = new TH2D(
+            Form("h2d_posXY_input_0%d", l),
+            Form("XY Position Distribution (Input) 0%d (%s);X [mm];Y [mm]", l, GetDatasetLabel(l)),
+            220, -11000, 11000,
+            700, -35000, 35000);
+            
+        h2d_posXZ_input[l] = new TH2D(
+            Form("h2d_posXZ_input_0%d", l),
+            Form("XZ Position Distribution (Input) 0%d (%s);X [mm];Z [mm]", l, GetDatasetLabel(l)),
+            220, -11000, 11000,
+            180, -9000, 9000);
+            
+        h2d_posYZ_input[l] = new TH2D(
+            Form("h2d_posYZ_input_0%d", l),
+            Form("YZ Position Distribution (Input) 0%d (%s);Y [mm];Z [mm]", l, GetDatasetLabel(l)),
+            700, -35000, 35000,
+            180, -9000, 9000);
+    }
+
+    // Direction Distributions (output)
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_dirU[l] = new TH1D(
             Form("h1d_dirU_0%d", l),
@@ -282,6 +334,24 @@ void HistogramManager::Initialize() {
         h1d_dirW[l] = new TH1D(
             Form("h1d_dirW_0%d", l),
             Form("W Direction Distribution 0%d (%s);Direction W;Entries", l, GetDatasetLabel(l)),
+            200, -1, 1);
+    }
+
+    // Direction Distributions (input)
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_dirU_input[l] = new TH1D(
+            Form("h1d_dirU_input_0%d", l),
+            Form("U Direction Distribution (Input) 0%d (%s);Direction U;Entries", l, GetDatasetLabel(l)),
+            200, -1, 1);
+            
+        h1d_dirV_input[l] = new TH1D(
+            Form("h1d_dirV_input_0%d", l),
+            Form("V Direction Distribution (Input) 0%d (%s);Direction V;Entries", l, GetDatasetLabel(l)),
+            200, -1, 1);
+            
+        h1d_dirW_input[l] = new TH1D(
+            Form("h1d_dirW_input_0%d", l),
+            Form("W Direction Distribution (Input) 0%d (%s);Direction W;Entries", l, GetDatasetLabel(l)),
             200, -1, 1);
     }
 
@@ -517,25 +587,45 @@ void HistogramManager::FillEnergyResolution(int dataset, double E_input, double 
     }
 }
 
-void HistogramManager::FillPositionDistributions(int dataset, double x, double y, double z) {
+void HistogramManager::FillPositionDistributions(int dataset, double x, double y, double z, bool is_input) {
     if (dataset >= 1 && dataset < Config::NSAMPLES) {
         double r = TMath::Sqrt(x*x + y*y + z*z);
         
-        if (h1d_posX[dataset]) h1d_posX[dataset]->Fill(x);
-        if (h1d_posY[dataset]) h1d_posY[dataset]->Fill(y);
-        if (h1d_posZ[dataset]) h1d_posZ[dataset]->Fill(z);
-        if (h1d_posR[dataset]) h1d_posR[dataset]->Fill(r);
-        if (h2d_posXY[dataset]) h2d_posXY[dataset]->Fill(x, y);
-        if (h2d_posXZ[dataset]) h2d_posXZ[dataset]->Fill(x, z);
-        if (h2d_posYZ[dataset]) h2d_posYZ[dataset]->Fill(y, z);
+        if (is_input) {
+            // Fill input histograms
+            if (h1d_posX_input[dataset]) h1d_posX_input[dataset]->Fill(x);
+            if (h1d_posY_input[dataset]) h1d_posY_input[dataset]->Fill(y);
+            if (h1d_posZ_input[dataset]) h1d_posZ_input[dataset]->Fill(z);
+            if (h1d_posR_input[dataset]) h1d_posR_input[dataset]->Fill(r);
+            if (h2d_posXY_input[dataset]) h2d_posXY_input[dataset]->Fill(x, y);
+            if (h2d_posXZ_input[dataset]) h2d_posXZ_input[dataset]->Fill(x, z);
+            if (h2d_posYZ_input[dataset]) h2d_posYZ_input[dataset]->Fill(y, z);
+        } else {
+            // Fill output histograms
+            if (h1d_posX[dataset]) h1d_posX[dataset]->Fill(x);
+            if (h1d_posY[dataset]) h1d_posY[dataset]->Fill(y);
+            if (h1d_posZ[dataset]) h1d_posZ[dataset]->Fill(z);
+            if (h1d_posR[dataset]) h1d_posR[dataset]->Fill(r);
+            if (h2d_posXY[dataset]) h2d_posXY[dataset]->Fill(x, y);
+            if (h2d_posXZ[dataset]) h2d_posXZ[dataset]->Fill(x, z);
+            if (h2d_posYZ[dataset]) h2d_posYZ[dataset]->Fill(y, z);
+        }
     }
 }
 
-void HistogramManager::FillDirectionDistributions(int dataset, double u, double v, double w) {
+void HistogramManager::FillDirectionDistributions(int dataset, double u, double v, double w, bool is_input) {
     if (dataset >= 1 && dataset < Config::NSAMPLES) {
-        if (h1d_dirU[dataset]) h1d_dirU[dataset]->Fill(u);
-        if (h1d_dirV[dataset]) h1d_dirV[dataset]->Fill(v);
-        if (h1d_dirW[dataset]) h1d_dirW[dataset]->Fill(w);
+        if (is_input) {
+            // Fill input histograms
+            if (h1d_dirU_input[dataset]) h1d_dirU_input[dataset]->Fill(u);
+            if (h1d_dirV_input[dataset]) h1d_dirV_input[dataset]->Fill(v);
+            if (h1d_dirW_input[dataset]) h1d_dirW_input[dataset]->Fill(w);
+        } else {
+            // Fill output histograms
+            if (h1d_dirU[dataset]) h1d_dirU[dataset]->Fill(u);
+            if (h1d_dirV[dataset]) h1d_dirV[dataset]->Fill(v);
+            if (h1d_dirW[dataset]) h1d_dirW[dataset]->Fill(w);
+        }
     }
 }
 
@@ -638,7 +728,7 @@ void HistogramManager::Write(int dataset) {
         if (h1d_EnergyResolution[dataset])
             outFile->WriteObject(h1d_EnergyResolution[dataset], Form("h1d_EnergyResolution_0%d", dataset));
             
-        // Position distributions
+        // Position distributions (output)
         if (h1d_posX[dataset])
             outFile->WriteObject(h1d_posX[dataset], Form("h1d_posX_0%d", dataset));
         if (h1d_posY[dataset])
@@ -653,14 +743,40 @@ void HistogramManager::Write(int dataset) {
             outFile->WriteObject(h2d_posXZ[dataset], Form("h2d_posXZ_0%d", dataset));
         if (h2d_posYZ[dataset])
             outFile->WriteObject(h2d_posYZ[dataset], Form("h2d_posYZ_0%d", dataset));
+
+        // Position distributions (input)
+        if (h1d_posX_input[dataset])
+            outFile->WriteObject(h1d_posX_input[dataset], Form("h1d_posX_input_0%d", dataset));
+        if (h1d_posY_input[dataset])
+            outFile->WriteObject(h1d_posY_input[dataset], Form("h1d_posY_input_0%d", dataset));
+        if (h1d_posZ_input[dataset])
+            outFile->WriteObject(h1d_posZ_input[dataset], Form("h1d_posZ_input_0%d", dataset));
+        if (h1d_posR_input[dataset])
+            outFile->WriteObject(h1d_posR_input[dataset], Form("h1d_posR_input_0%d", dataset));
+        if (h2d_posXY_input[dataset])
+            outFile->WriteObject(h2d_posXY_input[dataset], Form("h2d_posXY_input_0%d", dataset));
+        if (h2d_posXZ_input[dataset])
+            outFile->WriteObject(h2d_posXZ_input[dataset], Form("h2d_posXZ_input_0%d", dataset));
+        if (h2d_posYZ_input[dataset])
+            outFile->WriteObject(h2d_posYZ_input[dataset], Form("h2d_posYZ_input_0%d", dataset));
+        
             
-        // Direction distributions
+        // Direction distributions (output)
         if (h1d_dirU[dataset])
             outFile->WriteObject(h1d_dirU[dataset], Form("h1d_dirU_0%d", dataset));
         if (h1d_dirV[dataset])
             outFile->WriteObject(h1d_dirV[dataset], Form("h1d_dirV_0%d", dataset));
         if (h1d_dirW[dataset])
             outFile->WriteObject(h1d_dirW[dataset], Form("h1d_dirW_0%d", dataset));
+
+        // Direction distributions (input)
+        if (h1d_dirU_input[dataset])
+            outFile->WriteObject(h1d_dirU_input[dataset], Form("h1d_dirU_input_0%d", dataset));
+        if (h1d_dirV_input[dataset])
+            outFile->WriteObject(h1d_dirV_input[dataset], Form("h1d_dirV_input_0%d", dataset));
+        if (h1d_dirW_input[dataset])
+            outFile->WriteObject(h1d_dirW_input[dataset], Form("h1d_dirW_input_0%d", dataset));
+        
 
         // Particle type distributions
         if (h1d_particle_pdg[dataset])

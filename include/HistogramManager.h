@@ -28,8 +28,8 @@ class HistogramManager {
     void FillLightYield(int dataset, double total_KE, double nPE, int particle_pdg);
     void FillEnergyResolution(int dataset, double E_input, double E_output, double rel_diff);
 
-    void FillPositionDistributions(int dataset, double x, double y, double z);
-    void FillDirectionDistributions(int dataset, double u, double v, double w);
+    void FillPositionDistributions(int dataset, double x, double y, double z, bool is_input = false);
+    void FillDirectionDistributions(int dataset, double u, double v, double w, bool is_input = false);
 
     void FillParticlePDG(int dataset, int pdg, bool is_input = false);
     void FillMultiplicity(int dataset, int n_electrons, int n_muons, int n_pions, int n_protons, int n_neutrons, int n_other);
@@ -53,7 +53,19 @@ class HistogramManager {
     TH2D* h2d_oPMTChargeVsKE[Config::NSAMPLES];
     TH2D* h2d_oPEsVsKE[Config::NSAMPLES];
 
-    // Position distributions
+    // Position distributions (input)
+    TH1D* h1d_posX_input[Config::NSAMPLES];
+    TH1D* h1d_posY_input[Config::NSAMPLES];
+    TH1D* h1d_posZ_input[Config::NSAMPLES];
+    TH1D* h1d_posR_input[Config::NSAMPLES];
+    TH1D* h1d_dirU_input[Config::NSAMPLES];
+    TH1D* h1d_dirV_input[Config::NSAMPLES];
+    TH1D* h1d_dirW_input[Config::NSAMPLES];
+    TH2D* h2d_posXY_input[Config::NSAMPLES];
+    TH2D* h2d_posXZ_input[Config::NSAMPLES];
+    TH2D* h2d_posYZ_input[Config::NSAMPLES];
+
+    // Position distributions (output)
     TH1D* h1d_posX[Config::NSAMPLES];
     TH1D* h1d_posY[Config::NSAMPLES];
     TH1D* h1d_posZ[Config::NSAMPLES];

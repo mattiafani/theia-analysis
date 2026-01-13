@@ -52,8 +52,7 @@ std::string FileManager::FindHostname(const std::string& dataset) {
 void FileManager::FindPathsForHostname(const std::string& hostname, const std::string& flavor) {
     const char* data_root = std::getenv("THEIA_DATA_PATH");
     if (!data_root) {
-        throw std::runtime_error(
-            "THEIA_DATA_PATH environment variable is not set");
+        throw std::runtime_error("THEIA_DATA_PATH environment variable is not set");
     }
     std::string base(data_root);
 

@@ -409,6 +409,18 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
 
         double KE = CalculateKE(px, py, pz, E);
 
+        double p_mag = TMath::Sqrt(px*px + py*py + pz*pz);
+        double u = 0, v = 0, w = 0;
+        if (p_mag > 0) {
+            u = px / p_mag;
+            v = py / p_mag;
+            w = pz / p_mag;
+        }
+
+        // Fill input position and direction distributions
+        hist_manager.FillPositionDistributions(dataset, x, y, z, true);
+        hist_manager.FillDirectionDistributions(dataset, u, v, w, true);
+
         if (debug) {
             TDatabasePDG* pdgDB = TDatabasePDG::Instance();
             TParticlePDG* pinfo = pdgDB->GetParticle(pdg);
@@ -426,7 +438,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
             std::cout << "   Particle " << final_state_counter
                       << " | PDG = " << pdg
                       << " (" << pdg_name << ")"
-                      << ", Q = " << pdg_charge
+                    //   << ", Q = " << pdg_charge
                       << ", mass = " << pdg_mass << " GeV"
                       << ", Pos = (" << x << ", " << y << ", " << z << ")"
                       << ", KE = " << KE << " MeV"
@@ -475,7 +487,7 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
                 std::cout << "   Particle " << j
                           << " | PDG = " << (*output_branches.mcpdgs)[j]
                           << " (" << pdg_name <<")"
-                          << ", Q = " << pdg_charge
+                        //   << ", Q = " << pdg_charge
                           << ", mass = " << pdg_mass << " GeV"
                           << ", Pos = (" << (*output_branches.mcxs)[j] << ", "
                           << (*output_branches.mcys)[j] << ", "
@@ -663,18 +675,22 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
     //
 
     if (output_branches.mcxs && output_branches.mcys && output_branches.mczs &&
-        output_branches.mcus && output_branches.mcvs && output_branches.mcws) {
+        output_branches.mcus && output_branches.mcvs && output_branches.mcws &&
+        output_branches.mcparticlecount > 0) {
         
+        // Fill vertex position (same for all particles, so only fill once)
+        double vtx_x = (*output_branches.mcxs)[0];
+        double vtx_y = (*output_branches.mcys)[0];
+        double vtx_z = (*output_branches.mczs)[0];
+        hist_manager.FillPositionDistributions(dataset, vtx_x, vtx_y, vtx_z, false);  // false = output
+        
+        // Fill direction distributions for each particle
         for (Int_t j = 0; j < output_branches.mcparticlecount; j++) {
-            double x = (*output_branches.mcxs)[j];
-            double y = (*output_branches.mcys)[j];
-            double z = (*output_branches.mczs)[j];
             double u = (*output_branches.mcus)[j];
             double v = (*output_branches.mcvs)[j];
             double w = (*output_branches.mcws)[j];
             
-            hist_manager.FillPositionDistributions(dataset, x, y, z);
-            hist_manager.FillDirectionDistributions(dataset, u, v, w);
+            hist_manager.FillDirectionDistributions(dataset, u, v, w, false);  // false = output
         }
     }
 

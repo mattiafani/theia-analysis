@@ -7,7 +7,7 @@
 #include <iostream>
 
 void merge_datasets(const char* fname) {
-    const int NDATASETS = 8;
+    const int NDATASETS = 4; // This should be 8 with the version taking genie2rat files as input
 
     TFile* f = TFile::Open(fname, "UPDATE");
     if (!f || f->IsZombie()) {
