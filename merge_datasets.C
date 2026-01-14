@@ -106,6 +106,16 @@ void merge_datasets(const char* fname) {
     merge_TH2D("h2d_theta_phi", "h2d_theta_phi_combined");  
     merge_TH2D("h2d_theta_vs_energy", "h2d_theta_vs_energy_combined");  
     merge_TH2D("h2d_phi_vs_energy", "h2d_phi_vs_energy_combined");  
+    merge_TH2D("h2d_scintEdep_Vs_Photons", "h2d_scintEdep_Vs_Photons_combined");
+    merge_TH2D("h2d_scintEdep_Vs_KE", "h2d_scintEdep_Vs_KE_combined");
+    merge_TH2D("h2d_scintEdepQuenched_Vs_Photons", "h2d_scintEdepQuenched_Vs_Photons_combined");
+    merge_TH2D("h2d_scintEdepQuenched_Vs_KE", "h2d_scintEdepQuenched_Vs_KE_combined");
+    merge_TH2D("h2d_QuenchingFactor", "h2d_QuenchingFactor_combined");
+    // merge_TH2D("h1d_PMTMultiplicity", "h1d_PMTMultiplicity_combined");
+    // merge_TH2D("h2d_PMTHitPattern", "h2d_PMTHitPattern_combined");
+    // merge_TH2D("h2d_ChargeVsNPE", "h2d_ChargeVsNPE_combined");
+    // merge_TH2D("h2d_DigitNhitsVsMCNhits", "h2d_DigitNhitsVsMCNhits_combined");
+    // merge_TH2D("h2d_HitTimeVsFETime", "h2d_HitTimeVsFETime_combined");
 
     // TH1D histos
     merge_TH1D("h1d_Ediff", "h1d_Ediff_combined");
@@ -142,6 +152,10 @@ void merge_datasets(const char* fname) {
     merge_TH1D("h1d_theta_muons", "h1d_theta_muons_combined");
     merge_TH1D("h1d_theta_pions", "h1d_theta_pions_combined");
     merge_TH1D("h1d_theta_protons", "h1d_theta_protons_combined");
+    // merge_TH1D("h1d_PhotonProcess", "h1d_PhotonProcess_combined");
+    // merge_TH1D("h1d_Wavelength", "h1d_Wavelength_combined");
+    merge_TH1D("h1d_DirectionMagnitude", "h1d_DirectionMagnitude_combined");
+    
 
     f->Close();
     delete f;

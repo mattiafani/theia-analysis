@@ -24,8 +24,8 @@ void EventProcessor::InputBranches::Reset() {
 }
 
 EventProcessor::OutputBranches::OutputBranches() {
-    evid = subev = mcid = mcparticlecount = mcpdg = nhits = mcpecount = -1;
-    mcx = mcy = mcz = mcu = mcv = mcw = mct = mcke = -1;
+    evid = subev = mcid = mcparticlecount = mcpdg = nhits = mcpecount = scintEdep = scintEdepQuenched = -1;
+    mcnhits = mcx = mcy = mcz = mcu = mcv = mcw = mct = mcke = -1;
     scintPhotons = remPhotons = cherPhotons = -1;
     digitNhits = 0;
 
@@ -96,7 +96,6 @@ void EventProcessor::EnableOnlyRequiredBranches(TTree* tree) {
         tree->SetBranchStatus("scintPhotons", 1);
         tree->SetBranchStatus("cherPhotons", 1);
         tree->SetBranchStatus("remPhotons", 1);
-        tree->SetBranchStatus("mcPMTNPE", 1);
 
         tree->SetBranchStatus("mcpdgs", 1);
         tree->SetBranchStatus("mcxs", 1);
@@ -107,9 +106,24 @@ void EventProcessor::EnableOnlyRequiredBranches(TTree* tree) {
         tree->SetBranchStatus("mcws", 1);
         tree->SetBranchStatus("mcts", 1);
 
+        tree->SetBranchStatus("scintEdep", 1);
+        tree->SetBranchStatus("scintEdepQuenched", 1);
+
+        // tree->SetBranchStatus("mcnhits", 1);
+        // tree->SetBranchStatus("digitNhits", 1);
+
+        tree->SetBranchStatus("mcPMTNPE", 1); // 
+        // tree->SetBranchStatus("mcPMTCharge", 1); 
+        // tree->SetBranchStatus("mcPMTID", 1); 
+
         // For event display in debug mode, we need additional branches
         if (cfg.GetEventDisplayMode()) {
-            tree->SetBranchStatus("mcPMTID", 1);
+            // tree->SetBranchStatus("mcPMTID", 1);
+            // Only enable if really needed
+            // tree->SetBranchStatus("mcPEProcess", 1);
+            // tree->SetBranchStatus("mcPEWavelength", 1);
+            // tree->SetBranchStatus("mcPEHitTime", 1);
+            // tree->SetBranchStatus("mcPEFrontEndTime", 1);
         }
     }
 }
@@ -285,7 +299,19 @@ void EventProcessor::SetupOutputBranches(TTree* tree) {
     if (tree->GetBranch("mcPECharge")) {
         tree->SetBranchAddress("mcPECharge", &output_branches.mcPECharge);
     }
+
+    if (tree->GetBranch("scintEdep")) {
+        tree->SetBranchAddress("scintEdep", &output_branches.scintEdep);
+    }
+    if (tree->GetBranch("scintEdepQuenched")) {
+        tree->SetBranchAddress("scintEdepQuenched", &output_branches.scintEdepQuenched);
+    }
+    if (tree->GetBranch("mcnhits")) {
+        tree->SetBranchAddress("mcnhits", &output_branches.mcnhits);
+    }
 }
+
+
 
 void EventProcessor::ProcessFile(int file_nr, int dataset) {
     Config& cfg = Config::Instance();
@@ -344,14 +370,6 @@ void EventProcessor::ProcessFile(int file_nr, int dataset) {
         // Output file contains events starting at file_nr * 100 + 1
         // So first output event corresponds to input event file_nr * 100
         Int_t i_entry_in = file_nr * 100 + i_entry_out + 1; // +1 for 1-based EvtNum
-
-        // Extra debug
-        if (debug && evt_nr < 3) {  // Debug first few events
-            std::cout << "\nMapping: i_entry_out=" << i_entry_out 
-                      << " (evid=" << output_branches.evid << ")"
-                      << " -> i_entry_in=" << i_entry_in << std::endl;
-        }
-        ////
         
         if (i_entry_in >= n_entries_in) {
             if (debug) {
@@ -426,12 +444,12 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
             TParticlePDG* pinfo = pdgDB->GetParticle(pdg);
 
             const char* pdg_name = "unknown";
-            double pdg_charge = NAN;
+            // double pdg_charge = NAN;
             double pdg_mass = NAN;
 
             if (pinfo) {
                 pdg_name = pinfo->GetName();
-                pdg_charge = pinfo->Charge();
+                // pdg_charge = pinfo->Charge();
                 pdg_mass = pinfo->Mass();
             }
 
@@ -475,12 +493,12 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
                 TParticlePDG* pinfo = pdgDB->GetParticle((*output_branches.mcpdgs)[j]);
 
                 const char* pdg_name = "unknown";
-                double pdg_charge = NAN;
+                // double pdg_charge = NAN;
                 double pdg_mass = NAN;
 
                 if (pinfo) {
                     pdg_name = pinfo->GetName();
-                    pdg_charge = pinfo->Charge();
+                    // pdg_charge = pinfo->Charge();
                     pdg_mass = pinfo->Mass();
                 }
 
@@ -555,11 +573,38 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
         hist_manager.FillLightYield(dataset, output_total_true_KE, this_event_true_nr_PE, primary_pdg);
     }
 
+    // Energy deposition validation
+    if (output_branches.scintEdep >= 0) { 
+        hist_manager.FillEdepValidation(dataset, output_branches.scintEdep,
+                                    output_branches.scintEdepQuenched,
+                                    output_branches.scintPhotons,
+                                    output_total_true_KE);
+    }
+
+    // PMT validation
+    if (output_branches.mcPMTID && output_branches.mcPMTNPE) {
+        hist_manager.FillPMTValidation(dataset, output_branches.mcPMTID, output_branches.mcPMTNPE, output_branches.mcPMTCharge);
+    }
+
+    // Photon process and wavelength validation 
+    // These can be large. If execution slows down comment this block
+    // Only fill for a subset of events to avoid memory issues - for now
+    if (debug && evt_nr % 1000000 == 0) {  // Every 10th event
+        if (output_branches.mcPEProcess) {
+            hist_manager.FillPhotonProcess(dataset, output_branches.mcPEProcess);
+        }
+        if (output_branches.mcPEWavelength) {
+            hist_manager.FillWavelength(dataset, output_branches.mcPEWavelength);
+        }
+        if (output_branches.mcPEHitTime && output_branches.mcPEFrontEndTime) {
+            hist_manager.FillTimingValidation(dataset, output_branches.mcPEHitTime, output_branches.mcPEFrontEndTime);
+        }
+    }
+
     double rel_diff = (input_total_true_KE - output_total_true_KE) / input_total_true_KE;
 
     hist_manager.FillTotalEnergy(dataset, input_total_true_KE, output_total_true_KE);
-    hist_manager.FillPhotonsVsKE(dataset, output_total_true_KE, output_branches.scintPhotons, 
-                                  output_branches.cherPhotons, output_branches.remPhotons);
+    hist_manager.FillPhotonsVsKE(dataset, output_total_true_KE, output_branches.scintPhotons, output_branches.cherPhotons, output_branches.remPhotons);
     hist_manager.FillPEsVsKE(dataset, output_total_true_KE, this_event_true_nr_PE);
     hist_manager.FillEdiff(dataset, input_total_true_KE - output_total_true_KE);
     hist_manager.FillEnergyResolution(dataset, input_total_true_KE, output_total_true_KE, rel_diff);
@@ -590,13 +635,6 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
             double output_x = (*output_branches.mcxs)[0];
             double output_y = (*output_branches.mcys)[0];
             double output_z = (*output_branches.mczs)[0];  
-            
-            // Too many events show (0,0,0) input positions while the output position appears reasonable. Quick workaround:
-            // if (input_x == 0 && input_y == 0 && input_z == 0) {
-            //     input_x = output_x;
-            //     input_y = output_y;
-            //     input_z = output_z;
-            // }
     
             // Calculate differences (units in mm)
             double dx = (output_x - input_x);
@@ -627,9 +665,6 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
         else if (pdg == 2112) n_neutrons_in++;
         else n_other_in++;
     }
-
-    // Multiplicity of particle types in output
-    // To be implemented
 
     // Angular distributions in output
 
@@ -665,7 +700,16 @@ void EventProcessor::ProcessEvent(int evt_nr, int dataset, int entry_index) {
             
             // Fill angular distributions
             hist_manager.FillAngularDistributions(dataset, theta, phi, ke, pdg);
+
+            // Direction magnitude check
+            hist_manager.FillDirectionMagnitude(dataset, u, v, w);
         }
+    }
+
+    // Digitizer comparison
+    if (output_branches.digitNhits >= 0 && output_branches.mcnhits >= 0) {
+        hist_manager.FillDigitizerComparison(dataset, output_branches.digitNhits,
+                                            output_branches.mcnhits);
     }
 
     // Fill multiplicity histograms

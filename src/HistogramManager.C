@@ -94,6 +94,31 @@ HistogramManager::HistogramManager() : outFile(nullptr) {
         h1d_theta_muons[i] = nullptr;
         h1d_theta_pions[i] = nullptr;
         h1d_theta_protons[i] = nullptr;
+
+        // Energy deposition 
+        h2d_scintEdep_Vs_Photons[i] = nullptr;
+        h2d_scintEdep_Vs_KE[i] = nullptr;
+        h2d_scintEdepQuenched_Vs_Photons[i] = nullptr;
+        h2d_scintEdepQuenched_Vs_KE[i] = nullptr;
+        h2d_QuenchingFactor[i] = nullptr;
+
+        // PMT validation
+        // h1d_PMTMultiplicity[i] = nullptr;
+        // h2d_PMTHitPattern[i] = nullptr;
+        // h2d_ChargeVsNPE[i] = nullptr;
+
+        // Photon process and wavelength
+        // h1d_PhotonProcess[i] = nullptr;
+        // h1d_Wavelength[i] = nullptr;
+
+        // Timing validation
+        // h2d_HitTimeVsFETime[i] = nullptr;
+
+        // Direction validation
+        // h1d_DirectionMagnitude[i] = nullptr;
+
+        // Digitizer validation
+        // h2d_DigitNhitsVsMCNhits[i] = nullptr;
     }
 }
 
@@ -108,9 +133,7 @@ void HistogramManager::Initialize() {
     for (int l = 1; l < Config::NSAMPLES; l++) {
         h1d_Ediff[l] = new TH1D(
             Form("h1d_Ediff_0%d", l),
-            Form("Energy difference 0%d (%s);E_{in} - E_{out} [MeV];Entries", l, GetDatasetLabel(l)),
-            cfg.n_bins_h1d_Ediff,
-            -2, 2);
+            Form("Energy difference 0%d (%s);E_{in} - E_{out} [MeV];Entries", l, GetDatasetLabel(l)), cfg.n_bins_h1d_Ediff, -1, 1);
     }
 
     // Basic TH2s
@@ -234,7 +257,7 @@ void HistogramManager::Initialize() {
         h1d_EnergyResolution[l] = new TH1D(
             Form("h1d_EnergyResolution_0%d", l),
             Form("Energy Resolution 0%d (%s);(E_{in}-E_{out})/E_{in};Entries", l, GetDatasetLabel(l)),
-            200, -1, 1);
+            200, -.2, .2);
     }
 
     // Position Distributions (output)
@@ -460,6 +483,97 @@ void HistogramManager::Initialize() {
             180, 0, TMath::Pi());
     }
 
+    // Energy Deposition Validation
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h2d_scintEdep_Vs_Photons[l] = new TH2D(
+            Form("h2d_scintEdep_Vs_Photons_0%d", l),
+            Form("Scint Edep vs Photons 0%d (%s);Scint Photons;Scint Edep [MeV]", l, GetDatasetLabel(l)),
+            200, 0, 1E7,
+            200, 0, 10000);
+            
+        h2d_scintEdep_Vs_KE[l] = new TH2D(
+            Form("h2d_scintEdep_Vs_KE_0%d", l),
+            Form("Scint Edep vs Total KE 0%d (%s);Total KE [MeV];Scint Edep [MeV]", l, GetDatasetLabel(l)),
+            200, 0, 10000,
+            200, 0, 10000);
+            
+        h2d_scintEdepQuenched_Vs_Photons[l] = new TH2D(
+            Form("h2d_scintEdepQuenched_Vs_Photons_0%d", l),
+            Form("Quenched Edep vs Photons 0%d (%s);Scint Photons;Quenched Edep [MeV]", l, GetDatasetLabel(l)),
+            200, 0, 1E7,
+            200, 0, 10000);
+            
+        h2d_scintEdepQuenched_Vs_KE[l] = new TH2D(
+            Form("h2d_scintEdepQuenched_Vs_KE_0%d", l),
+            Form("Quenched Edep vs Total KE 0%d (%s);Total KE [MeV];Quenched Edep [MeV]", l, GetDatasetLabel(l)),
+            200, 0, 10000,
+            200, 0, 10000);
+            
+        h2d_QuenchingFactor[l] = new TH2D(
+            Form("h2d_QuenchingFactor_0%d", l),
+            Form("Quenching Factor 0%d (%s);Total KE [MeV];Quenched/Edep", l, GetDatasetLabel(l)),
+            200, 0, 10000,
+            200, 0, 1.2);
+    }
+
+    // PMT Validation
+    // for (int l = 1; l < Config::NSAMPLES; l++) {
+    //     h1d_PMTMultiplicity[l] = new TH1D(
+    //         Form("h1d_PMTMultiplicity_0%d", l),
+    //         Form("PMT Hit Multiplicity 0%d (%s);Number of PMTs Hit;Entries", l, GetDatasetLabel(l)),
+    //         500, 0, 50000);
+            
+    //     h2d_PMTHitPattern[l] = new TH2D(
+    //         Form("h2d_PMTHitPattern_0%d", l),
+    //         Form("PMT Hit Pattern 0%d (%s);PMT ID;NPE per PMT", l, GetDatasetLabel(l)),
+    //         500, 0, 50000,
+    //         100, 0, 1000);
+            
+    //     h2d_ChargeVsNPE[l] = new TH2D(
+    //         Form("h2d_ChargeVsNPE_0%d", l),
+    //         Form("PMT Charge vs NPE 0%d (%s);NPE;Charge", l, GetDatasetLabel(l)),
+    //         200, 0, 1000,
+    //         200, 0, 1000);
+    // }
+
+    // Photon Process and Wavelength
+    // for (int l = 1; l < Config::NSAMPLES; l++) {
+    //     h1d_PhotonProcess[l] = new TH1D(
+    //         Form("h1d_PhotonProcess_0%d", l),
+    //         Form("Photon Creation Process 0%d (%s);Process ID;Entries", l, GetDatasetLabel(l)),
+    //         20, 0, 20);
+            
+    //     h1d_Wavelength[l] = new TH1D(
+    //         Form("h1d_Wavelength_0%d", l),
+    //         Form("Photon Wavelength 0%d (%s);Wavelength [nm];Entries", l, GetDatasetLabel(l)),
+    //         200, 200, 700);
+    // }
+
+    // //Timing Validation
+    // for (int l = 1; l < Config::NSAMPLES; l++) {
+    //     h2d_HitTimeVsFETime[l] = new TH2D(
+    //         Form("h2d_HitTimeVsFETime_0%d", l),
+    //         Form("Hit Time vs Front-End Time 0%d (%s);Hit Time [ns];FE Time [ns]", l, GetDatasetLabel(l)),
+    //         200, 0, 1000,
+    //         200, 0, 1000);
+    // }
+
+    // Direction Magnitude Validation
+    for (int l = 1; l < Config::NSAMPLES; l++) {
+        h1d_DirectionMagnitude[l] = new TH1D(
+            Form("h1d_DirectionMagnitude_0%d", l),
+            Form("Direction Vector Magnitude 0%d (%s);|#vec{dir}|;Entries", l, GetDatasetLabel(l)),
+            200, 0.98, 1.02);
+    }
+
+    // // Digitizer Validation
+    // for (int l = 1; l < Config::NSAMPLES; l++) {
+    //     h2d_DigitNhitsVsMCNhits[l] = new TH2D(
+    //         Form("h2d_DigitNhitsVsMCNhits_0%d", l),
+    //         Form("Digitized Hits vs MC Hits 0%d (%s);MC Hits;Digitized Hits", l, GetDatasetLabel(l)),
+    //         200, 0, 50000,
+    //         200, 0, 50000);
+    // }
 
 }
 
@@ -677,6 +791,93 @@ void HistogramManager::FillAngularDistributions(int dataset, double theta, doubl
     }
 }
 
+void HistogramManager::FillEdepValidation(int dataset, double scintEdep, 
+                                         double scintEdepQuenched, 
+                                         double scintPhotons, double total_KE) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        if (h2d_scintEdep_Vs_Photons[dataset]) {
+            h2d_scintEdep_Vs_Photons[dataset]->Fill(scintPhotons, scintEdep);
+        }
+        if (h2d_scintEdep_Vs_KE[dataset]) {
+            h2d_scintEdep_Vs_KE[dataset]->Fill(total_KE, scintEdep);
+        }
+        if (h2d_scintEdepQuenched_Vs_Photons[dataset]) {
+            h2d_scintEdepQuenched_Vs_Photons[dataset]->Fill(scintPhotons, scintEdepQuenched);
+        }
+        if (h2d_scintEdepQuenched_Vs_KE[dataset]) {
+            h2d_scintEdepQuenched_Vs_KE[dataset]->Fill(total_KE, scintEdepQuenched);
+        }
+        if (h2d_QuenchingFactor[dataset] && scintEdep > 0) {
+            double quenching = scintEdepQuenched / scintEdep;
+            h2d_QuenchingFactor[dataset]->Fill(total_KE, quenching);
+        }
+    }
+}
+
+void HistogramManager::FillPMTValidation(int dataset, std::vector<int>* pmtIDs,
+                                        std::vector<int>* pmtNPE, 
+                                        std::vector<double>* pmtCharge) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES) {
+        if (pmtIDs && pmtNPE) {
+            // Fill multiplicity
+            if (h1d_PMTMultiplicity[dataset]) {
+                h1d_PMTMultiplicity[dataset]->Fill(pmtIDs->size());
+            }
+            
+            // Fill hit pattern and charge vs NPE
+            for (size_t i = 0; i < pmtIDs->size(); ++i) {
+                // if (h2d_PMTHitPattern[dataset]) {
+                //     h2d_PMTHitPattern[dataset]->Fill((*pmtIDs)[i], (*pmtNPE)[i]);
+                // }
+                
+                if (h2d_ChargeVsNPE[dataset] && pmtCharge && i < pmtCharge->size()) {
+                    h2d_ChargeVsNPE[dataset]->Fill((*pmtNPE)[i], (*pmtCharge)[i]);
+                }
+            }
+        }
+    }
+}
+
+void HistogramManager::FillPhotonProcess(int dataset, std::vector<int>* processes) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES && processes && h1d_PhotonProcess[dataset]) {
+        for (size_t i = 0; i < processes->size(); ++i) {
+            h1d_PhotonProcess[dataset]->Fill((*processes)[i]);
+        }
+    }
+}
+
+void HistogramManager::FillWavelength(int dataset, std::vector<double>* wavelengths) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES && wavelengths && h1d_Wavelength[dataset]) {
+        for (size_t i = 0; i < wavelengths->size(); ++i) {
+            h1d_Wavelength[dataset]->Fill((*wavelengths)[i]);
+        }
+    }
+}
+
+void HistogramManager::FillTimingValidation(int dataset, std::vector<double>* hitTime,
+                                           std::vector<double>* feTime) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES && hitTime && feTime && 
+        h2d_HitTimeVsFETime[dataset]) {
+        size_t minSize = std::min(hitTime->size(), feTime->size());
+        for (size_t i = 0; i < minSize; ++i) {
+            h2d_HitTimeVsFETime[dataset]->Fill((*hitTime)[i], (*feTime)[i]);
+        }
+    }
+}
+
+void HistogramManager::FillDirectionMagnitude(int dataset, double u, double v, double w) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES && h1d_DirectionMagnitude[dataset]) {
+        double magnitude = TMath::Sqrt(u*u + v*v + w*w);
+        h1d_DirectionMagnitude[dataset]->Fill(magnitude);
+    }
+}
+
+void HistogramManager::FillDigitizerComparison(int dataset, int digitNhits, int mcnhits) {
+    if (dataset >= 1 && dataset < Config::NSAMPLES && h2d_DigitNhitsVsMCNhits[dataset]) {
+        h2d_DigitNhitsVsMCNhits[dataset]->Fill(mcnhits, digitNhits);
+    }
+}
+
 void HistogramManager::Write(int dataset) {
     if (!outFile) return;
 
@@ -760,7 +961,6 @@ void HistogramManager::Write(int dataset) {
         if (h2d_posYZ_input[dataset])
             outFile->WriteObject(h2d_posYZ_input[dataset], Form("h2d_posYZ_input_0%d", dataset));
         
-            
         // Direction distributions (output)
         if (h1d_dirU[dataset])
             outFile->WriteObject(h1d_dirU[dataset], Form("h1d_dirU_0%d", dataset));
@@ -777,7 +977,6 @@ void HistogramManager::Write(int dataset) {
         if (h1d_dirW_input[dataset])
             outFile->WriteObject(h1d_dirW_input[dataset], Form("h1d_dirW_input_0%d", dataset));
         
-
         // Particle type distributions
         if (h1d_particle_pdg[dataset])
             outFile->WriteObject(h1d_particle_pdg[dataset], Form("h1d_particle_pdg_0%d", dataset));
@@ -821,6 +1020,44 @@ void HistogramManager::Write(int dataset) {
             outFile->WriteObject(h1d_theta_pions[dataset], Form("h1d_theta_pions_0%d", dataset));
         if (h1d_theta_protons[dataset])
             outFile->WriteObject(h1d_theta_protons[dataset], Form("h1d_theta_protons_0%d", dataset));
+    
+        // Energy deposition validation
+        if (h2d_scintEdep_Vs_Photons[dataset])
+            outFile->WriteObject(h2d_scintEdep_Vs_Photons[dataset], Form("h2d_scintEdep_Vs_Photons_0%d", dataset));
+        if (h2d_scintEdep_Vs_KE[dataset])
+            outFile->WriteObject(h2d_scintEdep_Vs_KE[dataset], Form("h2d_scintEdep_Vs_KE_0%d", dataset));
+        if (h2d_scintEdepQuenched_Vs_Photons[dataset])
+            outFile->WriteObject(h2d_scintEdepQuenched_Vs_Photons[dataset], Form("h2d_scintEdepQuenched_Vs_Photons_0%d", dataset));
+        if (h2d_scintEdepQuenched_Vs_KE[dataset])
+            outFile->WriteObject(h2d_scintEdepQuenched_Vs_KE[dataset], Form("h2d_scintEdepQuenched_Vs_KE_0%d", dataset));
+        if (h2d_QuenchingFactor[dataset])
+            outFile->WriteObject(h2d_QuenchingFactor[dataset], Form("h2d_QuenchingFactor_0%d", dataset));
+            
+        // PMT validation
+        // if (h1d_PMTMultiplicity[dataset])
+        //     outFile->WriteObject(h1d_PMTMultiplicity[dataset], Form("h1d_PMTMultiplicity_0%d", dataset));
+        // if (h2d_PMTHitPattern[dataset])
+        //     outFile->WriteObject(h2d_PMTHitPattern[dataset], Form("h2d_PMTHitPattern_0%d", dataset));
+        // if (h2d_ChargeVsNPE[dataset])
+        //     outFile->WriteObject(h2d_ChargeVsNPE[dataset], Form("h2d_ChargeVsNPE_0%d", dataset));
+            
+        // Photon process and wavelength
+        // if (h1d_PhotonProcess[dataset])
+        //     outFile->WriteObject(h1d_PhotonProcess[dataset], Form("h1d_PhotonProcess_0%d", dataset));
+        // if (h1d_Wavelength[dataset])
+        //     outFile->WriteObject(h1d_Wavelength[dataset], Form("h1d_Wavelength_0%d", dataset));
+            
+        // // Timing validation
+        // if (h2d_HitTimeVsFETime[dataset])
+        //     outFile->WriteObject(h2d_HitTimeVsFETime[dataset], Form("h2d_HitTimeVsFETime_0%d", dataset));
+            
+        // Direction validation
+        if (h1d_DirectionMagnitude[dataset])
+            outFile->WriteObject(h1d_DirectionMagnitude[dataset], Form("h1d_DirectionMagnitude_0%d", dataset));
+            
+        // Digitizer validation
+        // if (h2d_DigitNhitsVsMCNhits[dataset])
+        //     outFile->WriteObject(h2d_DigitNhitsVsMCNhits[dataset], Form("h2d_DigitNhitsVsMCNhits_0%d", dataset));
     
             
     }

@@ -38,9 +38,10 @@ class EventProcessor {
 
     // Output tree branches (RATPAC output format)
     struct OutputBranches {
-        Int_t evid, subev, mcid, mcparticlecount, mcpdg, nhits, mcpecount;
+        Int_t evid, subev, mcid, mcparticlecount, mcpdg, nhits, mcpecount, mcnhits;
         Double_t mcx, mcy, mcz, mcu, mcv, mcw, mct, mcke;
-        Double_t scintPhotons, remPhotons, cherPhotons;
+        Double_t scintPhotons, remPhotons, cherPhotons;        
+        Double_t scintEdep,scintEdepQuenched;
 
         std::vector<int>* mcpdgs;
         std::vector<double>* mcxs;

@@ -35,6 +35,14 @@ class HistogramManager {
     void FillMultiplicity(int dataset, int n_electrons, int n_muons, int n_pions, int n_protons, int n_neutrons, int n_other);
     void FillAngularDistributions(int dataset, double theta, double phi, double energy, int pdg);
 
+    void FillEdepValidation(int dataset, double scintEdep, double scintEdepQuenched, double scintPhotons, double total_KE);
+    void FillPMTValidation(int dataset, std::vector<int>* pmtIDs, std::vector<int>* pmtNPE, std::vector<double>* pmtCharge);
+    void FillPhotonProcess(int dataset, std::vector<int>* processes);
+    void FillWavelength(int dataset, std::vector<double>* wavelengths);
+    void FillTimingValidation(int dataset, std::vector<double>* hitTime, std::vector<double>* feTime);
+    void FillDirectionMagnitude(int dataset, double u, double v, double w);
+    void FillDigitizerComparison(int dataset, int digitNhits, int mcnhits);
+
     void Write(int dataset);
     void CloseOutputFile();
 
@@ -123,6 +131,31 @@ class HistogramManager {
     TH1D* h1d_theta_muons[Config::NSAMPLES];
     TH1D* h1d_theta_pions[Config::NSAMPLES];
     TH1D* h1d_theta_protons[Config::NSAMPLES];
+
+    // Energy deposition 
+    TH2D* h2d_scintEdep_Vs_Photons[Config::NSAMPLES];
+    TH2D* h2d_scintEdep_Vs_KE[Config::NSAMPLES];
+    TH2D* h2d_scintEdepQuenched_Vs_Photons[Config::NSAMPLES];
+    TH2D* h2d_scintEdepQuenched_Vs_KE[Config::NSAMPLES];
+    TH2D* h2d_QuenchingFactor[Config::NSAMPLES];
+
+    // PMT validation
+    TH1D* h1d_PMTMultiplicity[Config::NSAMPLES];
+    // TH2D* h2d_PMTHitPattern[Config::NSAMPLES];
+    TH2D* h2d_ChargeVsNPE[Config::NSAMPLES];
+
+    // Photon process and wavelength
+    TH1D* h1d_PhotonProcess[Config::NSAMPLES];
+    TH1D* h1d_Wavelength[Config::NSAMPLES];
+
+    // Timing validation
+    TH2D* h2d_HitTimeVsFETime[Config::NSAMPLES];
+
+    // Direction validation
+    TH1D* h1d_DirectionMagnitude[Config::NSAMPLES];
+
+    // Digitizer validation
+    TH2D* h2d_DigitNhitsVsMCNhits[Config::NSAMPLES];
 
     void CreateParameterTree();
 };
